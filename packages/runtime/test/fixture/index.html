@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><title>runtime integration fixture</title>
+<script type="module">
+window.__r = { events: [], booted: null, fatal: null };
+const w = new Worker('./worker.js', { type: 'module' });
+w.onerror = (e) => { window.__r.fatal = (e.message||'?') + ' @' + (e.filename||'') + ':' + (e.lineno||''); };
+w.onmessage = (e) => {
+  window.__r.events.push(e.data);
+  if (e.data.t === 'booted') window.__r.booted = e.data;
+  if (e.data.t === 'fatal') window.__r.fatal = e.data.reason;
+  // Answer any input request so tests do not have to co-ordinate.
+  if (e.data.t === 'inputRequest') {
+    const line = (window.__answers || []).shift() ?? '';
+    setTimeout(() => w.postMessage({ t: 'stdin', requestId: e.data.requestId, line }), 20);
+  }
+};
+window.__boot = () => w.postMessage({ t: 'boot', indexUrl: '/pyodide/', pythonUrl: '/python/' });
+window.__run = (files, entry, stdin) =>
+  w.postMessage({ t: 'run', runId: (window.__runId = (window.__runId ?? 0) + 1),
+                  program: { kind: 'python', files, entry, stdin } });
+window.__boot();
+</script>
