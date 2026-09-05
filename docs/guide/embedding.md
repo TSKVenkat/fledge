@@ -1,11 +1,5 @@
 # Embedding
 
-::: warning Not implemented yet
-This page documents the intended design. The deployment, accounts and embed
-features it describes are not built. See the status section in the README for
-what actually works today.
-:::
-
 An embed is a runnable snippet inside a page you already have — a worksheet, a
 blog post, a virtual learning environment. The hosting page needs to change
 nothing: no headers, no configuration, no co-operation.
@@ -13,6 +7,15 @@ nothing: no headers, no configuration, no co-operation.
 ## Putting one in a page
 
 Create a share link for a project, then use its token:
+
+```html
+<script src="https://fledge-sandbox.example.net/embed.js"
+        data-fledge="TOKEN" data-height="380"></script>
+```
+
+That script is under a kilobyte and has no dependencies. It inserts the iframe
+and resizes it to fit the example. If your page cannot run scripts, write the
+iframe yourself and give it a fixed height:
 
 ```html
 <iframe src="https://fledge-sandbox.example.net/embed/TOKEN"

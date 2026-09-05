@@ -112,3 +112,22 @@ main {
 .stage iframe { width: 100%; height: 100%; border: 0; display: block; }
 
 [hidden] { display: none !important; }
+
+/* --- the embed ------------------------------------------------------------ */
+/* Lives on someone else's page, so it states its own bounds and never assumes
+   anything about the surrounding document's styles. */
+.embed { display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+.embed-bar { display: flex; align-items: center; gap: .6rem; padding: .45rem .6rem; border-bottom: 1px solid var(--line); }
+.embed-title { font-weight: 600; font-size: .9rem; }
+.embed-bar button { padding: .28rem .9rem; font-size: .88rem; }
+.embed-open { margin-left: auto; font-size: .82rem; color: var(--muted); text-decoration: none; }
+.embed-open:hover { color: var(--accent); }
+.embed-panes { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); min-height: 190px; }
+@media (max-width: 620px) { .embed-panes { grid-template-columns: 1fr; } }
+.embed-panes .editor, .embed-panes .console { background: var(--surface); min-height: 190px; }
+.embed-message { font: 14px system-ui; color: var(--muted); padding: 1.2rem; }
+.embed-note { border-top: 1px solid var(--line); padding: .5rem .7rem; font-size: .82rem; color: var(--muted); }
+.embed-note label { display: block; font-weight: 600; color: var(--ink); }
+.embed-note textarea { width: 100%; font-family: var(--mono); font-size: .82rem; margin: .25rem 0; padding: .3rem; border: 1px solid var(--line); border-radius: 6px; }
+.embed-note p { margin: .2rem 0 0; }
+.embed .stage { height: 220px; border-top: 1px solid var(--line); }

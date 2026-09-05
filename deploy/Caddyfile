@@ -62,6 +62,19 @@
 	@runtime path /pyodide/*
 	header @runtime Cache-Control "public, max-age=31536000, immutable"
 
+	# Only the endpoints a public embed needs, proxied so the embed fetches
+	# same-origin and CORS never enters the picture. Deliberately not /v1/*:
+	# the sandbox origin must not be able to reach anything that requires an
+	# account, and it holds no session cookie to reach it with.
+	handle /v1/shares/* {
+		reverse_proxy api:3000
+	}
+
+	handle /embed/* {
+		rewrite * /embed.html
+		file_server
+	}
+
 	handle {
 		try_files {path} /frame.html
 		file_server

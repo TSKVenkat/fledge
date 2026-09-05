@@ -57,12 +57,6 @@ export function App() {
     runner.run({ kind: 'python', files: { 'main.py': code }, entry: 'main.py' });
   };
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    runner.answer(answer);
-    setAnswer('');
-  };
-
   return (
     <div className="app">
       <header>
@@ -104,11 +98,25 @@ export function App() {
               ))}
             </pre>
             {runner.pendingInput && (
-              <form className="ask" onSubmit={submit}>
-                <span>{runner.pendingInput.prompt || '›'}</span>
-                <input autoFocus value={answer} onChange={(e) => setAnswer(e.target.value)}
-                       aria-label="Program input" />
-              </form>
+              /* A keydown handler, not a form. The embed runs inside a
+                 sandboxed iframe without allow-forms, which blocks submission
+                 before any handler runs; widening the sandbox to suit the UI
+                 would be the wrong way round, so the UI does without. */
+              <div className="ask">
+              <span>{runner.pendingInput.prompt || '›'}</span>
+              <input
+                autoFocus
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return;
+                  e.preventDefault();
+                  runner.answer(answer);
+                  setAnswer('');
+                }}
+                aria-label="Program input"
+              />
+            </div>
             )}
             {runner.progress && <div className="progress">{runner.progress}</div>}
           </div>

@@ -37,9 +37,12 @@ browser:
   showing everyone including the children who have not started
 - `docker compose up`, with the application and the sandbox on separate origins
 
-**Not yet implemented**: the embed route, the HTML/CSS/JS preview, and
-matplotlib. The classroom features above exist in the API but do not all have
-screens yet, so some of them are reachable only through it.
+- Embedding a runnable example in someone else's page, with one line of HTML
+  and no co-operation from that page
+
+**Not yet implemented**: the HTML/CSS/JS preview, and matplotlib. The classroom
+features above exist in the API but do not all have screens yet, so some of them
+are reachable only through it.
 
 ---
 

@@ -36,6 +36,14 @@ try {
   await waitExit(2);
   e = await evs();
   check('blocking input() round-trips', e.some(x => x.t === 'stdout' && x.text.includes('Hi Ada')));
+  // The prompt must arrive as a message, not as stdout: batched stdout held a
+  // prompt written with end="" until after the answer had been echoed.
+  const prompts = e.filter(x => x.t === 'inputRequest');
+  check('the prompt arrives with the request, not in stdout',
+    prompts.at(-1)?.prompt === 'Name? ', JSON.stringify(prompts.at(-1)?.prompt));
+  check('the prompt is not also written to stdout',
+    !e.filter(x => x.t === 'stdout').map(x => x.text).join('').includes('Name?'),
+    JSON.stringify(e.filter(x => x.t === 'stdout').map(x => x.text).join('')));
 
   // 3. turtle emits a retained display list
   await p.evaluate(() => window.__run({ 'main.py': 'import turtle\nt = turtle.Turtle()\nfor _ in range(4):\n    t.forward(50)\n    t.right(90)\n' }, 'main.py'));

@@ -30,6 +30,7 @@ export default defineConfig({
       input: {
         index: resolve(import.meta.dirname, 'index.html'),
         frame: resolve(import.meta.dirname, 'frame.html'),
+        embed: resolve(import.meta.dirname, 'embed.html'),
       },
     },
   },

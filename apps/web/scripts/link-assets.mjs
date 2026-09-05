@@ -8,6 +8,7 @@
  */
 import { cpSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 
 const here = import.meta.dirname;
@@ -34,4 +35,7 @@ for (const file of ['pyodide.mjs', 'pyodide.asm.mjs', 'pyodide.asm.wasm',
   cpSync(from, resolve(publicDir, 'pyodide', file));
 }
 cpSync(turtle, resolve(publicDir, 'python/turtle.py'));
+
+// The embed script is generated too, so it cannot drift from its source.
+execFileSync(process.execPath, [resolve(here, '../../../packages/embed/build.mjs')], { stdio: 'inherit' });
 console.log('runtime assets placed in apps/web/public');

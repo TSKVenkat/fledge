@@ -22,6 +22,13 @@ export interface RunnerHook {
   clear(): void;
 }
 
+/**
+ * The `mount` element must be rendered UNCONDITIONALLY by the caller, from the
+ * first render onwards. This effect depends on the ref object, which never
+ * changes, so if the element is absent when it first runs the sandbox is never
+ * created and nothing ever retries. An early `return <Loading/>` above the
+ * mount point is enough to break it, silently.
+ */
 export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOrigin: string | null): RunnerHook {
   const runnerRef = useRef<Runner | null>(null);
   const [status, setStatus] = useState<RunnerStatus>('created');
@@ -78,8 +85,10 @@ export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOri
   const answer = useCallback((line: string) => {
     setPendingInput((pending) => {
       if (pending) {
-        // Echo it, so the transcript reads the way a terminal session would.
-        setLines((l) => [...l, { kind: 'out', text: line + '\n' }]);
+        // Echo the prompt and the answer together, so the transcript reads the
+        // way a terminal session does. The prompt is deliberately not printed
+        // by Python: batched stdout held it back until after the answer.
+        setLines((l) => [...l, { kind: 'out', text: `${pending.prompt}${line}\n` }]);
         runnerRef.current?.provideInput(pending.requestId, line);
       }
       return null;

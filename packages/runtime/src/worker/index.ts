@@ -97,9 +97,11 @@ from pyodide.ffi import run_sync
 from js import _fledge_input
 
 def _input(prompt=""):
-    if prompt:
-        print(prompt, end="")
-        sys.stdout.flush()      # otherwise the prompt lands after the answer
+    # The prompt is NOT printed here. Pyodide batches stdout by line, and a
+    # prompt written with end="" has no newline, so it sat in the buffer until
+    # the next print and appeared AFTER the answer the student had already
+    # typed. It travels in the inputRequest message instead, and the host
+    # echoes prompt and answer together once the answer is known.
     return run_sync(_fledge_input(prompt))
 
 builtins.input = _input
