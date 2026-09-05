@@ -21,6 +21,13 @@ exists on `main`.
   with printable passwords; assignments with a private copy per student and a
   grid that lists everyone including those who have not started.
 - `docker compose up`, with the application and the sandbox on separate origins.
+- Administration: creating teachers, resetting passwords, disabling accounts.
+  There is no self-registration; a school decides who teaches in it.
+- An account given a password by someone else -- a bulk-created student, a new
+  teacher -- must choose its own before reaching anything else.
+- Renaming a project in place, and deleting one.
+- `e2e/boot-throttled.mjs`: cold-boot timing at 4x CPU throttling and Fast 3G
+  (7.9 s to Run; 3.9 s warm).
 
 ### Security
 - The sandbox is a separate origin and must be a separate host name, not a port.

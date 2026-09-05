@@ -28,6 +28,10 @@ const createBody = z.object({
   entry: pathRule.optional(),
 });
 const filesBody = z.object({ files: z.record(pathRule, z.string()) });
+const patchBody = z.object({
+  title: z.string().min(1).max(200).optional(),
+  entry: pathRule.optional(),
+});
 const idParams = z.object({ id: z.string().uuid() });
 
 const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -108,6 +112,18 @@ export function projectRoutes(app: FastifyInstance, db: Database, env: Env): voi
       project: publicShape(project),
       files: Object.fromEntries(files.map((f) => [f.path, f.content ?? ''])),
     };
+  });
+
+  app.patch('/v1/projects/:id', async (request) => {
+    const { id } = idParams.parse(request.params);
+    const project = await loadProject(request, id);
+    const body = patchBody.parse(request.body ?? {});
+    const settings = { ...(project.settings as Record<string, unknown>), ...(body.entry ? { entry: body.entry } : {}) };
+    const [updated] = await db.update(projects).set({
+      ...(body.title !== undefined ? { title: body.title } : {}),
+      settings, updatedAt: new Date(),
+    }).where(eq(projects.id, id)).returning();
+    return { project: publicShape(updated!) };
   });
 
   app.put('/v1/projects/:id/files', async (request) => {

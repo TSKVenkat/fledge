@@ -9,17 +9,21 @@ as declined; the second list is settled.
   replayed after the program finishes — is designed, typed and unit-tested, and
   has never run in WebKit. Until it has, every claim about Safari embeds is an
   inference. This is the largest untested assumption in the project.
-- **Cold boot on school hardware.** The one number we have (2.2 s) is from a
-  fast desktop with warm local assets. A Chromebook on school wifi is the real
-  target, and the loading design should be judged against it.
+- **Cold boot on real school hardware.** Measured so far only on a desktop made
+  slower (`e2e/boot-throttled.mjs`, Chrome DevTools throttling):
+
+  | | to Run, cold | to Run, warm |
+  |---|---|---|
+  | desktop, no throttling | 2.4 s | 2.3 s |
+  | CPU 4x slower | 2.6 s | 2.4 s |
+  | CPU 4x slower + Fast 3G | 7.9 s | 3.9 s |
+
+  Inside the 15 s budget, and warm-equals-cold on a fast machine shows the
+  2.3 s is Pyodide initialising, not downloading. But a throttled desktop is not
+  a Chromebook on school wifi; that measurement still needs the machine.
 - **A real classroom.** No teacher has used this. Everything above is
   engineering judgement about what a teacher wants; the first afternoon with one
   will correct some of it.
-- Project rename and delete from the interface.
-- The `must_change_password` flow. The flag is set on bulk-created accounts and
-  honoured nowhere.
-- Admin screens for creating teachers. Today the first administrator is created
-  from the environment and further teachers only through the API.
 - A service worker on the sandbox origin, so the runtime is cached across visits
   rather than only by the browser's ordinary cache.
 - Multi-file projects in the editor. The API stores them; the editor shows one.

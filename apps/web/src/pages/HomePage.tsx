@@ -68,6 +68,13 @@ export function HomePage() {
         {error && <p className="bad">{error}</p>}
       </section>
 
+      {user?.role === 'admin' && (
+        <section className="card">
+          <h2>Administration</h2>
+          <Link to="/admin">People who can teach here</Link>
+        </section>
+      )}
+
       <section className="card">
         <h2>Projects</h2>
         <div className="row">
@@ -82,6 +89,10 @@ export function HomePage() {
             <li key={project.id}>
               <Link to={`/p/${project.id}`}>{project.title}</Link>
               <span className="muted small">{project.kind}</span>
+              <button className="link" style={{ marginLeft: 'auto' }}
+                      onClick={() => { if (confirm(`Delete “${project.title}”?`)) void act(() => api.deleteProject(project.id)); }}>
+                Delete
+              </button>
             </li>
           ))}
         </ul>

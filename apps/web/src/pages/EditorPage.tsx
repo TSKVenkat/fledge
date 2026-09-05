@@ -154,7 +154,13 @@ export function EditorPage() {
         <div className="meta">
           {id && (
             <>
-              <span className="muted small">{title}</span>
+              {/* The title is editable in place: renaming is the most common
+                  thing done to a project after writing it, and a dialog for it
+                  is one dialog too many. */}
+              <input className="title" value={title} aria-label="Project title"
+                     onChange={(e) => setTitle(e.target.value)}
+                     onBlur={() => { if (id) void api.patchProject(id, { title: title.trim() || 'Untitled' },
+                       tokenKey ? (localStorage.getItem(tokenKey) ?? undefined) : undefined).catch(() => setSaved('error')); }} />
               <button className="link" onClick={() => void save()} disabled={saved === 'saving'}>
                 {saved === 'saving' ? 'Saving…' : saved === 'dirty' ? 'Save' : saved === 'error' ? 'Save failed' : 'Saved'}
               </button>

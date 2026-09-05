@@ -75,6 +75,7 @@ jobs:
       - run: node e2e/webpreview.mjs
       - run: node e2e/share.mjs
       - run: node e2e/classroom.mjs
+      - run: node e2e/admin.mjs
       - name: Stack logs on failure
         if: failure()
         run: docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color | tail -200

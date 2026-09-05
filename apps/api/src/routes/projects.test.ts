@@ -110,6 +110,32 @@ describe('projects', () => {
     }
   });
 
+  it('renames a project, for its owner or its token holder', async () => {
+    const { project, editToken } = (await create({ files: { 'main.py': '1' } })).json();
+    const renamed = await h.app.inject({
+      method: 'PATCH', url: `/v1/projects/${project.id}`,
+      headers: { 'x-edit-token': editToken }, payload: { title: 'Spirals' },
+    });
+    expect(renamed.statusCode).toBe(200);
+    expect(renamed.json().project.title).toBe('Spirals');
+    const stranger = await h.app.inject({
+      method: 'PATCH', url: `/v1/projects/${project.id}`, payload: { title: 'Mine now' },
+    });
+    expect(stranger.statusCode).toBe(404);
+  });
+
+  it('soft-deletes a project so it stops being available', async () => {
+    const { project, editToken } = (await create({ files: { 'main.py': '1' } })).json();
+    const gone = await h.app.inject({
+      method: 'DELETE', url: `/v1/projects/${project.id}`, headers: { 'x-edit-token': editToken },
+    });
+    expect(gone.statusCode).toBe(204);
+    const after = await h.app.inject({
+      method: 'GET', url: `/v1/projects/${project.id}`, headers: { 'x-edit-token': editToken },
+    });
+    expect(after.statusCode).toBe(404);
+  });
+
   it('lists only the signed-in owner’s own projects', async () => {
     const cookie = await login(h.app, TEST_ADMIN.email, TEST_ADMIN.password);
     await create({ title: 'Mine', files: { 'main.py': '1' } }, { cookie });

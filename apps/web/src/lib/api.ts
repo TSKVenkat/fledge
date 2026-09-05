@@ -74,7 +74,20 @@ export interface ShareLink {
   expiresAt: string | null; revokedAt: string | null; token?: string;
 }
 
+export interface AdminUser {
+  id: string; name: string; email: string | null; username: string | null;
+  role: 'admin' | 'teacher' | 'student'; isActive: boolean; mustChangePassword: boolean; createdAt: string;
+}
+
 export const api = {
+  adminListUsers: () => request<{ users: AdminUser[] }>('/v1/admin/users'),
+  adminCreateUser: (payload: { name: string; email: string; password: string; role?: 'admin' | 'teacher' }) =>
+    send('POST')('/v1/admin/users', payload) as Promise<{ user: AdminUser }>,
+  adminPatchUser: (id: string, payload: { name?: string; role?: AdminUser['role']; isActive?: boolean }) =>
+    request<{ user: AdminUser }>(`/v1/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  adminResetPassword: (id: string, password: string) =>
+    send('POST')(`/v1/admin/users/${id}/password`, { password }) as Promise<void>,
+
   config: () => request<{ sandboxUrl: string; publicUrl: string; allowMicropip: boolean }>('/v1/config'),
 
   login: (identifier: string, password: string) =>
@@ -95,6 +108,12 @@ export const api = {
       method: 'PUT', body: JSON.stringify({ files }),
       headers: editToken ? { 'x-edit-token': editToken } : {},
     }),
+  patchProject: (id: string, payload: { title?: string; entry?: string }, editToken?: string) =>
+    request<{ project: Project }>(`/v1/projects/${id}`, {
+      method: 'PATCH', body: JSON.stringify(payload), headers: editToken ? { 'x-edit-token': editToken } : {},
+    }),
+  deleteProject: (id: string, editToken?: string) =>
+    request<void>(`/v1/projects/${id}`, { method: 'DELETE', headers: editToken ? { 'x-edit-token': editToken } : {} }),
   claimProject: (id: string, editToken: string) =>
     request<{ project: Project }>(`/v1/projects/${id}/claim`, {
       method: 'POST', headers: { 'x-edit-token': editToken },

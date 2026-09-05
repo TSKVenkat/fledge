@@ -6,6 +6,8 @@ import { ClassPage } from './pages/ClassPage.tsx';
 import { AssignmentPage } from './pages/AssignmentPage.tsx';
 import { EditorPage } from './pages/EditorPage.tsx';
 import { SharePage } from './pages/SharePage.tsx';
+import { ChangePasswordPage } from './pages/ChangePasswordPage.tsx';
+import { AdminPage } from './pages/AdminPage.tsx';
 
 function Chrome({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useSession();
@@ -40,12 +42,16 @@ export function App() {
         element={
           loading ? <div className="centred"><p className="muted">…</p></div>
             : !user ? <LoginPage />
+            // A password handed out on paper is not yet the student's own. Nothing
+            // else is reachable until it is.
+            : user.mustChangePassword ? <ChangePasswordPage />
             : (
               <Chrome>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/classes/:id" element={<ClassPage />} />
                   <Route path="/assignments/:id" element={<AssignmentPage />} />
+                  <Route path="/admin" element={user.role === 'admin' ? <AdminPage /> : <Navigate to="/" replace />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Chrome>

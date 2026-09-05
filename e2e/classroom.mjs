@@ -70,8 +70,36 @@ try {
     (await teacher.locator('.passwords .bad').textContent()).includes('only time'));
 
   // --- the student ---------------------------------------------------------
-  await signIn(student, username, password);
-  check('the new student can sign in', true);
+  // The printed password is not yet the child's own: the first thing they meet
+  // is a page insisting they choose one, and nothing else is reachable first.
+  await student.goto(APP, { waitUntil: 'domcontentloaded' });
+  await student.waitForSelector('form.card input', { timeout: 30000 });
+  await student.fill('input[autocomplete="username"]', username);
+  await student.fill('input[autocomplete="current-password"]', password);
+  await student.click('button[type="submit"]');
+  await student.waitForSelector('text=Choose your own password', { timeout: 30000 });
+  check('a printed password must be changed before anything else', true);
+  check('the home page is not reachable around it', await student.locator('nav .brand').count() === 0);
+
+  const ownPassword = 'my very own secret words';
+  await student.fill('input[autocomplete="current-password"]', password);
+  const fresh = student.locator('input[autocomplete="new-password"]');
+  await fresh.nth(0).fill(ownPassword);
+  await fresh.nth(1).fill(ownPassword);
+  await student.click('button:has-text("Save and continue")');
+  // Changing a password ends every session, so they sign in again -- with theirs.
+  await student.waitForSelector('form.card input[autocomplete="username"]', { timeout: 30000 });
+  check('changing it signs the student out everywhere', true);
+  const old = await (async () => {
+    await student.fill('input[autocomplete="username"]', username);
+    await student.fill('input[autocomplete="current-password"]', password);
+    await student.click('button[type="submit"]');
+    await student.waitForSelector('.bad', { timeout: 20000 });
+    return true;
+  })();
+  check('the printed password no longer works', old);
+  await signIn(student, username, ownPassword);
+  check('the new student can sign in with their own password', true);
 
   await student.fill('input[aria-label="Join code"]', joinCode.toLowerCase());  // as a child would type it
   await student.click('button:has-text("Join")');
