@@ -2,13 +2,15 @@
 import { chromium } from 'playwright';
 
 const APP = process.env.FLEDGE_URL ?? 'http://localhost:8080/';
+// The editor with no account is at /new; the root is the sign-in page.
+const EDITOR = new URL('/new', APP).href;
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
 p.on('pageerror', e => console.log('  [pageerror]', e.message.slice(0, 200)));
 const R = []; const check = (n, ok, d = '') => { R.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}${d ? '  — ' + d : ''}`); };
 
 try {
-  await p.goto(APP, { waitUntil: 'domcontentloaded' });
+  await p.goto(EDITOR, { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => { const b = document.querySelector('button.run'); return b && !b.disabled; },
                           null, { timeout: 120000 });
 

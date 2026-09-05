@@ -11,6 +11,7 @@ import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Editor } from './Editor.tsx';
 import { useRunner } from './use-runner.ts';
+import { Console } from './Console.tsx';
 import './styles.css';
 
 interface Shared {
@@ -25,8 +26,17 @@ function Embed() {
   const [shared, setShared] = useState<Shared | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState('');
-  const [answer, setAnswer] = useState('');
   const [stdin, setStdin] = useState('');
+  // The full editor lives on the APPLICATION origin, not this one. A relative
+  // /s/ link from here would land on the sandbox, whose server falls through
+  // to the bare frame -- a blank page where the escape hatch should be.
+  const [appOrigin, setAppOrigin] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/v1/config').then((r) => r.json())
+      .then((c: { publicUrl?: string }) => { if (c.publicUrl) setAppOrigin(new URL(c.publicUrl).origin); })
+      .catch(() => setAppOrigin(null));
+  }, []);
+  const openUrl = appOrigin ? `${appOrigin}/s/${token()}` : null;
   const stage = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
   // The frame is on this very origin, so the runner embeds a same-origin child.
@@ -87,34 +97,16 @@ function Embed() {
         {busy
           ? <button className="stop" onClick={runner.stop}>Stop</button>
           : <button className="run" onClick={run} disabled={!runner.capabilities}>Run</button>}
-        <a className="embed-open" href={`/s/${token()}`} target="_blank" rel="noreferrer">
-          Open ↗
-        </a>
+        {openUrl && (
+          <a className="embed-open" href={openUrl} target="_blank" rel="noreferrer">
+            Open ↗
+          </a>
+        )}
       </header>
 
       <div className="embed-panes">
         <Editor value={code} onChange={setCode} onRun={run} />
-        <div className="console">
-          <pre>{runner.lines.map((l, i) => <span key={i} className={l.kind}>{l.text}</span>)}</pre>
-          {runner.pendingInput && (
-            /* Not a form: this frame is sandboxed without allow-forms. */
-            <div className="ask">
-              <span>{runner.pendingInput.prompt || '›'}</span>
-              <input
-                autoFocus
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== 'Enter') return;
-                  e.preventDefault();
-                  runner.answer(answer);
-                  setAnswer('');
-                }}
-                aria-label="Program input"
-              />
-            </div>
-          )}
-        </div>
+        <Console runner={runner} />
       </div>
 
       </>
@@ -133,8 +125,8 @@ function Embed() {
           </label>
           <p>
             This browser cannot pause a program to ask a question, so fill the box
-            above before pressing Run — or{' '}
-            <a href={`/s/${token()}`} target="_blank" rel="noreferrer">run it interactively ↗</a>.
+            above before pressing Run{openUrl ? <> — or{' '}
+            <a href={openUrl} target="_blank" rel="noreferrer">run it interactively ↗</a></> : null}.
           </p>
         </div>
       )}

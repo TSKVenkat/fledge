@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage.tsx';
 import { ClassPage } from './pages/ClassPage.tsx';
 import { AssignmentPage } from './pages/AssignmentPage.tsx';
 import { EditorPage } from './pages/EditorPage.tsx';
+import { SharePage } from './pages/SharePage.tsx';
 
 function Chrome({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useSession();
@@ -32,6 +33,8 @@ export function App() {
           meet a login form first. */}
       <Route path="/new" element={<EditorPage />} />
       <Route path="/p/:id" element={<EditorPage />} />
+      {/* Public: this is where an embed sends a reader, and what a teacher hands out. */}
+      <Route path="/s/:token" element={<SharePage />} />
       <Route
         path="*"
         element={

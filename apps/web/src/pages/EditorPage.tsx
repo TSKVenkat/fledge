@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Editor } from '../Editor.tsx';
 import { useRunner } from '../use-runner.ts';
-import { api, ApiError } from '../lib/api.ts';
+import { api, ApiError, type ShareLink } from '../lib/api.ts';
+import { Console } from '../Console.tsx';
+import { loadSandboxOrigin } from '../lib/config.ts';
+import { useSession } from '../lib/session.tsx';
 
 const WEB_STARTER = `<!-- Press Run, or Ctrl+Enter. -->
 <h1>Hello</h1>
@@ -32,32 +35,6 @@ for i in range(36):
     t.right(170)
 `;
 
-/**
- * Where the sandbox lives is an instance decision, not a build-time one: it is
- * a different port in the Docker stack and a different host name in a real
- * deployment, and an operator should be able to move it without a toolchain.
- * The API therefore tells us, and the development fallback keeps the two
- * origins apart locally so the boundary is exercised there too.
- */
-function developmentSandboxOrigin(): string {
-  const { protocol, hostname, port } = location;
-  const other = hostname === 'localhost' ? '127.0.0.1' : 'localhost';
-  return `${protocol}//${other}${port ? ':' + port : ''}`;
-}
-
-async function loadSandboxOrigin(): Promise<string> {
-  try {
-    const response = await fetch('/v1/config', { credentials: 'same-origin' });
-    if (response.ok) {
-      const config = await response.json() as { sandboxUrl?: string };
-      if (config.sandboxUrl) return new URL(config.sandboxUrl).origin;
-    }
-  } catch {
-    // No API reachable: this is the vite dev server on its own.
-  }
-  return developmentSandboxOrigin();
-}
-
 export function EditorPage() {
   const { id } = useParams();
   const [title, setTitle] = useState('Untitled');
@@ -70,6 +47,15 @@ export function EditorPage() {
    * different document", and this is what makes it one.
    */
   const [documentKey, setDocumentKey] = useState(0);
+  const { user } = useSession();
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [shares, setShares] = useState<ShareLink[] | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  // Only the owner is offered sharing: an anonymous project has nobody to be
+  // accountable for the link, and a share on someone else's work is refused
+  // by the API anyway.
+  const canShare = id !== undefined && user !== null && (ownerId === user.id || user.role === 'admin');
   const [kind, setKind] = useState<'python' | 'web'>('python');
   const [python, setPython] = useState(STARTER);
   const [web, setWeb] = useState(WEB_STARTER);
@@ -83,7 +69,6 @@ export function EditorPage() {
   const [origin, setOrigin] = useState<string | null>(null);
   useEffect(() => { void loadSandboxOrigin().then(setOrigin); }, []);
   const runner = useRunner(stage, origin);
-  const [answer, setAnswer] = useState('');
 
   // An anonymous project's edit token lives in this browser and nowhere else:
   // it is what lets someone come back tomorrow without an account.
@@ -95,6 +80,7 @@ export function EditorPage() {
     void api.getProject(id, token)
       .then((loaded) => {
         setTitle(loaded.project.title);
+        setOwnerId(loaded.project.ownerId);
         setKind(loaded.project.kind);
         const entry = loaded.project.settings.entry ?? (loaded.project.kind === 'web' ? 'index.html' : 'main.py');
         const body = loaded.files[entry] ?? Object.values(loaded.files)[0] ?? '';
@@ -103,6 +89,22 @@ export function EditorPage() {
       })
       .catch((e: unknown) => { if (e instanceof ApiError) setSaved('error'); });
   }, [id, tokenKey]);
+
+  const loadShares = () => {
+    if (!id || !canShare) return;
+    api.listShares(id).then((r) => setShares(r.shares)).catch(() => setShares([]));
+  };
+  const share = async (visibility: 'link' | 'password', password?: string) => {
+    if (!id) return;
+    setShareError(null);
+    try { await api.createShare(id, { visibility, password }); loadShares(); }
+    catch (e) { setShareError(e instanceof ApiError ? e.message : 'Could not create a link.'); }
+  };
+  const revoke = async (shareId: string) => {
+    try { await api.revokeShare(shareId); loadShares(); }
+    catch (e) { setShareError(e instanceof ApiError ? e.message : 'Could not revoke that link.'); }
+  };
+  const openSharing = () => { setSharing((open) => !open); if (!sharing) loadShares(); };
 
   const save = async () => {
     if (!id) return;
@@ -156,6 +158,7 @@ export function EditorPage() {
               <button className="link" onClick={() => void save()} disabled={saved === 'saving'}>
                 {saved === 'saving' ? 'Saving…' : saved === 'dirty' ? 'Save' : saved === 'error' ? 'Save failed' : 'Saved'}
               </button>
+              {canShare && <button className="link" onClick={openSharing} aria-expanded={sharing}>Share</button>}
             </>
           )}
           {runner.capabilities && (
@@ -166,6 +169,11 @@ export function EditorPage() {
           )}
         </div>
       </header>
+
+      {sharing && canShare && (
+        <SharePanel shares={shares} error={shareError}
+                    onCreate={(v, pw) => void share(v, pw)} onRevoke={(sid) => void revoke(sid)} />
+      )}
 
       <main>
         <section className="pane">
@@ -184,35 +192,7 @@ export function EditorPage() {
             </button>
           </div>
 
-          <div className="console" hidden={tab !== 'console'}>
-            <pre>
-              {runner.lines.map((line, i) => (
-                <span key={i} className={line.kind}>{line.text}</span>
-              ))}
-            </pre>
-            {runner.pendingInput && (
-              /* A keydown handler, not a form. The embed runs inside a
-                 sandboxed iframe without allow-forms, which blocks submission
-                 before any handler runs; widening the sandbox to suit the UI
-                 would be the wrong way round, so the UI does without. */
-              <div className="ask">
-              <span>{runner.pendingInput.prompt || '›'}</span>
-              <input
-                autoFocus
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== 'Enter') return;
-                  e.preventDefault();
-                  runner.answer(answer);
-                  setAnswer('');
-                }}
-                aria-label="Program input"
-              />
-            </div>
-            )}
-            {runner.progress && <div className="progress">{runner.progress}</div>}
-          </div>
+          <Console runner={runner} hidden={tab !== 'console'} />
 
           {/* Always mounted: tearing the frame down to switch tabs would throw
               away a booted interpreter, and useRunner needs this element to
@@ -221,5 +201,56 @@ export function EditorPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+
+/**
+ * Links are shown with their token because the API keeps a sealed copy for
+ * exactly this purpose; revoking is immediate and the row stays, so a link
+ * that stopped working can be explained rather than merely vanishing.
+ */
+function SharePanel({ shares, error, onCreate, onRevoke }: {
+  shares: ShareLink[] | null;
+  error: string | null;
+  onCreate: (visibility: 'link' | 'password', password?: string) => void;
+  onRevoke: (id: string) => void;
+}) {
+  const [password, setPassword] = useState('');
+  const base = `${location.origin}/s/`;
+  const live = (shares ?? []).filter((s) => s.revokedAt === null);
+
+  return (
+    <section className="sharepanel">
+      <div className="row">
+        <button className="run" onClick={() => onCreate('link')}>New link</button>
+        <input placeholder="Password (optional)" value={password} aria-label="Link password"
+               onChange={(e) => setPassword(e.target.value)} />
+        <button disabled={!password} onClick={() => { onCreate('password', password); setPassword(''); }}>
+          New password link
+        </button>
+      </div>
+      {error && <p className="bad">{error}</p>}
+      {shares === null ? <p className="muted small">Loading…</p>
+        : live.length === 0 ? <p className="muted small">No links yet.</p>
+        : (
+          <ul className="list">
+            {live.map((s) => (
+              <li key={s.id}>
+                <code className="code">{s.token ? base + s.token : '(token not shown)'}</code>
+                <span className="pill">{s.visibility}</span>
+                {s.token && (
+                  <button className="link" onClick={() => void navigator.clipboard?.writeText(base + s.token)}>Copy</button>
+                )}
+                <button className="link" onClick={() => onRevoke(s.id)}>Revoke</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      <p className="muted small">
+        Anyone with a link can run and remix the project. Embed it with
+        {' '}<code className="code">&lt;script src="…/embed.js" data-fledge="TOKEN"&gt;</code>.
+      </p>
+    </section>
   );
 }

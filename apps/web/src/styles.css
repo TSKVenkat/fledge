@@ -186,3 +186,7 @@ th { text-align: left; font-weight: 600; color: var(--muted); border-bottom: 1px
 td { padding: .35rem .4rem; border-bottom: 1px solid var(--line); }
 .passwords { border: 1px solid var(--line); border-radius: var(--radius); padding: .6rem; background: var(--bg); }
 .passwords code { font-family: var(--mono); }
+
+/* --- sharing ------------------------------------------------------------ */
+.sharepanel { background: var(--surface); border-bottom: 1px solid var(--line); padding: .7rem 1rem; display: grid; gap: .5rem; }
+.sharepanel .code { font-size: .8rem; word-break: break-all; }

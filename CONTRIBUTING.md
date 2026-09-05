@@ -38,10 +38,25 @@ development means a mistake shows up locally rather than in production.
 ## Tests
 
 ```bash
-pnpm test                                    # unit, no browser needed
-node packages/runtime/test/run.mjs           # runtime, in a real browser
-node e2e/smoke.mjs                           # the editor, driven as a user
+pnpm test                                    # unit and API, on an in-process Postgres
+node packages/runtime/test/run.mjs           # the runtime, in a real browser
+node e2e/smoke.mjs                           # the editor, against the dev server
 ```
+
+The suites that matter most run against the built Docker stack, because two
+origins and real headers are the arrangement a school runs and the dev server
+does not reproduce it. Start the stack (see README), then:
+
+```bash
+node e2e/deployment.mjs     # the stack itself
+node e2e/embed.mjs          # an embed on a third-party origin
+node e2e/webpreview.mjs     # HTML/CSS/JS at an opaque origin
+node e2e/share.mjs          # share links, passwords, remix, revoke
+node e2e/classroom.mjs      # a whole lesson, teacher and student
+```
+
+CI runs all of them. A change to the runtime, the frame, or the deploy headers
+is not verified until these pass.
 
 The unit tests are pure and fast. Anything about the *runtime* needs a real
 browser, because the behaviour under test — whether `input()` blocks, whether a

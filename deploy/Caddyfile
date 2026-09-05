@@ -69,6 +69,12 @@
 	handle /v1/shares/* {
 		reverse_proxy api:3000
 	}
+	# Public instance facts (where the application lives), so an embed can link
+	# a reader back to the full editor on the right origin. Carries nothing that
+	# needs an account.
+	handle /v1/config {
+		reverse_proxy api:3000
+	}
 
 	handle /embed/* {
 		rewrite * /embed.html

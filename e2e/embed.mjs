@@ -65,6 +65,12 @@ try {
       JSON.stringify(transcript.slice(0, 60)));
   }
 
+  // The escape hatch must point at the APPLICATION origin. A relative link
+  // landed on the sandbox, whose server fell through to a blank frame.
+  const openHref = await frame.locator('.embed-open').getAttribute('href');
+  check('the Open link leads to the app origin, not the sandbox',
+    openHref !== null && openHref.startsWith(APP + '/s/'), openHref);
+
   // The iframe should have been resized by the height message.
   await p.waitForTimeout(800);
   const height = await p.locator('iframe').evaluate((el) => el.getBoundingClientRect().height);

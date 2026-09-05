@@ -2,7 +2,7 @@
    read the output, look at the drawing. */
 import { chromium } from 'playwright';
 
-const APP = 'http://localhost:5173/';
+const APP = 'http://localhost:5173/new';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
 p.on('pageerror', e => console.log('  [pageerror]', e.message.slice(0, 220)));

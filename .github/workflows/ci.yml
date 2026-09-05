@@ -43,3 +43,41 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: screenshots, path: e2e/*.png }
+
+  stack:
+    # The suites that found nearly every real bug run against the built Docker
+    # stack -- two origins, real headers, real Postgres -- because that is the
+    # arrangement a school actually runs and the dev server does not reproduce
+    # it. Everything before this job is cheap; this is the one that gates a
+    # merge on the product working.
+    runs-on: ubuntu-latest
+    needs: [check]
+    env:
+      SECRET_KEY: rGx1cQe9nY3o0mV7pK2sD4fH6jL8wZ1bT5uA7eC9iX0=
+      ADMIN_EMAIL: admin@example.org
+      ADMIN_PASSWORD: correct horse battery staple
+      POSTGRES_PASSWORD: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Build and start the stack
+        run: |
+          printf 'SECRET_KEY=%s\nADMIN_EMAIL=%s\nADMIN_PASSWORD=%s\nPOSTGRES_PASSWORD=%s\n' \
+            "$SECRET_KEY" "$ADMIN_EMAIL" "$ADMIN_PASSWORD" "$POSTGRES_PASSWORD" > .env
+          docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
+          npx wait-on http://localhost:8080/health -t 120000
+      - run: node e2e/deployment.mjs
+      - run: node e2e/embed.mjs
+      - run: node e2e/webpreview.mjs
+      - run: node e2e/share.mjs
+      - run: node e2e/classroom.mjs
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color | tail -200
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: stack-screenshots, path: e2e/*.png }

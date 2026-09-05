@@ -39,7 +39,7 @@ export type ProgramKind = 'python' | 'web';
 
 export interface Program {
   kind: ProgramKind;
-  /** Path -> contents. Paths are validated by @fledge/project-format. */
+  /** Path -> contents. Paths are validated where they are accepted, in the API's project routes. */
   files: Record<string, string>;
   entry: string;
   /** Lines drained by `input()` when `blockingInput` is false. */
