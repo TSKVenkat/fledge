@@ -10,11 +10,9 @@ const R = []; const check = (n, ok, d = '') => { R.push(ok); console.log(`${ok ?
 
 // Sign in, make a project, share it.
 const cookie = await adminCookie();
-const project = await createProject(cookie, 'Times table',
-  { 'main.py': 'n = input("Which table? ")
-for i in range(1, 4):
-    print(i, "x", n, "=", i * int(n))
-' });
+const project = await createProject(cookie, 'Times table', {
+  'main.py': 'n = input("Which table? ")\nfor i in range(1, 4):\n    print(i, "x", n, "=", i * int(n))\n',
+});
 const token = (await shareProject(cookie, project.id)).token;
 check('a share link was minted', typeof token === 'string' && token.length > 20);
 
