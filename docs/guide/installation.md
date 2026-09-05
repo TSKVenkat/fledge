@@ -49,13 +49,30 @@ and getting it wrong produces share links that work for you and nobody else.
 ## Offline and slow networks
 
 The Python runtime is about 12 MB, downloaded once and then cached. It is served
-from your own instance, not from a CDN, so a school with a filtered or absent
-internet connection still works: the runtime comes off the same LAN as
+from **your own instance**, not from a CDN, so a school with a filtered or
+absent internet connection still gets Python: it comes off the same LAN as
 everything else.
 
-Packages beyond the standard library — `matplotlib`, `numpy` — are fetched when a
-program first imports them. On a poor connection, load a program that imports
-them once on each machine to warm the cache.
+Package wheels — `matplotlib`, `numpy` and the rest — are a separate matter.
+They are **not** bundled, because the full set is hundreds of megabytes and most
+instances load none of it. By default they are fetched from a public CDN the
+first time a program imports one.
+
+If your network cannot reach that CDN, vendor the packages you need:
+
+```bash
+node apps/web/scripts/vendor-packages.mjs matplotlib
+```
+
+That resolves the dependency closure and downloads it — about 12 MB for
+matplotlib and everything it needs. Then tell the sandbox to use them, by adding
+this line to the `<head>` of `apps/web/frame.html` before building:
+
+```html
+<meta name="fledge-packages" content="/pyodide/">
+```
+
+After that the instance needs no internet access at all.
 
 ## From source
 

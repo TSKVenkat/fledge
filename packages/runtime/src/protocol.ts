@@ -44,7 +44,7 @@ export type FrameToHost =
 
 /** frame -> worker */
 export type FrameToWorker =
-  | { t: 'boot'; indexUrl: string; pythonUrl: string }
+  | { t: 'boot'; indexUrl: string; pythonUrl: string; packageBaseUrl: string }
   | { t: 'run'; runId: number; program: Program }
   | { t: 'stdin'; requestId: number; line: string | null };
 

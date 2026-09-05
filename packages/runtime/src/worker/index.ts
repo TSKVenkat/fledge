@@ -161,11 +161,17 @@ def _show(*a, **k):
 _plt.show = _show
 `;
 
-async function boot(indexUrl: string, pythonUrl: string): Promise<void> {
+async function boot(indexUrl: string, pythonUrl: string, packageBaseUrl: string): Promise<void> {
   post({ t: 'progress', phase: 'runtime', label: 'Starting Python', loaded: 0, total: null });
   const mod = await import(/* @vite-ignore */ `${indexUrl}pyodide.mjs`);
   pyodide = await mod.loadPyodide({
     indexURL: indexUrl,
+    // The core (wasm, stdlib) is served from our own origin; package wheels are
+    // not, because the pyodide npm package ships none of them and vendoring
+    // every wheel would be a great deal of disk for packages most instances
+    // never load. An operator who needs true offline use points this at their
+    // own mirror -- see scripts/vendor-packages.mjs.
+    packageBaseUrl,
     stdout: (text: string) => post({ t: 'stdout', runId, text: text + '\n' }),
     stderr: (text: string) => post({ t: 'stderr', runId, text: text + '\n' }),
   }) as PyodideApi;
@@ -249,7 +255,7 @@ async function run(id: number, program: Program): Promise<void> {
 self.onmessage = async (event: MessageEvent<FrameToWorker>) => {
   const msg = event.data;
   try {
-    if (msg.t === 'boot') { await boot(msg.indexUrl, msg.pythonUrl); return; }
+    if (msg.t === 'boot') { await boot(msg.indexUrl, msg.pythonUrl, msg.packageBaseUrl); return; }
     if (msg.t === 'run') {
       useBlockingInput =
         typeof (globalThis as { WebAssembly?: { Suspending?: unknown } }).WebAssembly?.Suspending === 'function' ||

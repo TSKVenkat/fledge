@@ -13,7 +13,8 @@ w.onmessage = (e) => {
     setTimeout(() => w.postMessage({ t: 'stdin', requestId: e.data.requestId, line }), 20);
   }
 };
-window.__boot = () => w.postMessage({ t: 'boot', indexUrl: '/pyodide/', pythonUrl: '/python/' });
+window.__boot = () => w.postMessage({ t: 'boot', indexUrl: '/pyodide/', pythonUrl: '/python/',
+  packageBaseUrl: 'https://cdn.jsdelivr.net/pyodide/v314.0.6/full/' });
 window.__run = (files, entry, stdin) =>
   w.postMessage({ t: 'run', runId: (window.__runId = (window.__runId ?? 0) + 1),
                   program: { kind: 'python', files, entry, stdin } });

@@ -39,10 +39,13 @@ browser:
 
 - Embedding a runnable example in someone else's page, with one line of HTML
   and no co-operation from that page
+- HTML, CSS and JavaScript with a live preview, running at an opaque origin with
+  no storage and no way to reach the page hosting it
+- matplotlib figures
 
-**Not yet implemented**: the HTML/CSS/JS preview, and matplotlib. The classroom
-features above exist in the API but do not all have screens yet, so some of them
-are reachable only through it.
+**Not yet implemented**: the classroom features above exist in the API but do
+not all have screens yet, so classes and assignments are reachable only through
+it for now.
 
 ---
 

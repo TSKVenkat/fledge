@@ -2,6 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { Editor } from './Editor.tsx';
 import { useRunner } from './use-runner.ts';
 
+const WEB_STARTER = `<!-- Press Run, or Ctrl+Enter. -->
+<h1>Hello</h1>
+<p id="out">…</p>
+
+<style>
+  body { font: 16px system-ui; padding: 1rem; }
+  h1 { color: #2d6cdf; }
+</style>
+
+<script>
+  const names = ["world", "everyone", "class"];
+  document.getElementById("out").textContent = "Hello, " + names[1] + "!";
+  console.log("the console works here too");
+</script>
+`;
+
 const STARTER = `# Press Run, or Ctrl+Enter.
 name = input("What is your name? ")
 print("Hello,", name)
@@ -41,7 +57,11 @@ async function loadSandboxOrigin(): Promise<string> {
 }
 
 export function App() {
-  const [code, setCode] = useState(STARTER);
+  const [kind, setKind] = useState<'python' | 'web'>('python');
+  const [python, setPython] = useState(STARTER);
+  const [web, setWeb] = useState(WEB_STARTER);
+  const code = kind === 'python' ? python : web;
+  const setCode = kind === 'python' ? setPython : setWeb;
   const [tab, setTab] = useState<'console' | 'canvas'>('console');
   const stage = useRef<HTMLDivElement>(null);
   const [origin, setOrigin] = useState<string | null>(null);
@@ -53,14 +73,29 @@ export function App() {
   const booting = runner.status === 'created' || runner.status === 'loading';
 
   const run = () => {
+    if (kind === 'web') {
+      // The page is the output, so show it rather than the console; anything
+      // the page logs still arrives in the console tab.
+      setTab('canvas');
+      runner.run({ kind: 'web', files: { 'index.html': web }, entry: 'index.html' });
+      return;
+    }
     setTab('console');
-    runner.run({ kind: 'python', files: { 'main.py': code }, entry: 'main.py' });
+    runner.run({ kind: 'python', files: { 'main.py': python }, entry: 'main.py' });
   };
 
   return (
     <div className="app">
       <header>
         <div className="brand">fledge</div>
+        <div className="kinds" role="tablist" aria-label="Language">
+          {(['python', 'web'] as const).map((k) => (
+            <button key={k} role="tab" aria-selected={kind === k}
+                    onClick={() => { setKind(k); setTab(k === 'web' ? 'canvas' : 'console'); }}>
+              {k === 'python' ? 'Python' : 'Web'}
+            </button>
+          ))}
+        </div>
         <div className="actions">
           {busy
             ? <button className="stop" onClick={runner.stop}>Stop</button>
@@ -80,14 +115,18 @@ export function App() {
 
       <main>
         <section className="pane">
-          <Editor value={code} onChange={setCode} onRun={run} />
+          {/* Keyed on the language: CodeMirror owns its document and mounts
+              once, so changing `value` alone would leave Python on screen after
+              switching to Web. A different language is a different document, so
+              remounting is the correct behaviour rather than a workaround. */}
+          <Editor key={kind} value={code} onChange={setCode} onRun={run} />
         </section>
 
         <section className="pane output">
           <div className="tabs" role="tablist">
             <button role="tab" aria-selected={tab === 'console'} onClick={() => setTab('console')}>Console</button>
             <button role="tab" aria-selected={tab === 'canvas'} onClick={() => setTab('canvas')}>
-              Drawing{runner.hasDrawing ? ' •' : ''}
+              {kind === 'web' ? 'Page' : 'Drawing'}{runner.hasDrawing ? ' •' : ''}
             </button>
           </div>
 
@@ -121,8 +160,9 @@ export function App() {
             {runner.progress && <div className="progress">{runner.progress}</div>}
           </div>
 
-          {/* The frame is always mounted: tearing it down to switch tabs would
-              throw away a booted interpreter. It is hidden, never unmounted. */}
+          {/* Always mounted: tearing the frame down to switch tabs would throw
+              away a booted interpreter, and useRunner needs this element to
+              exist from the first render. Hidden, never unmounted. */}
           <div className="stage" ref={stage} hidden={tab !== 'canvas'} />
         </section>
       </main>

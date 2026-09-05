@@ -94,9 +94,30 @@ try {
   e = await evs();
   check('imports a second file from the project', e.some(x => x.t === 'stdout' && x.text.includes('42')));
 
-  // 8. batch-tier stdin buffer
-  await p.evaluate(() => window.__run({ 'main.py': 'a=input()\nb=input()\nprint(int(a)+int(b))' }, 'main.py', '20\n22'));
+  // 8. matplotlib renders to a PNG rather than trying to open a window
+  console.log('  (loading matplotlib — first run fetches several MB)');
+  // Errors accumulate across the whole session, so count before and after
+  // rather than asserting a total: earlier tests raise deliberately.
+  const errorsBefore = (await evs()).filter(x => x.t === 'error').length;
+  await p.evaluate(() => window.__run({ 'main.py':
+    'import matplotlib.pyplot as plt\nplt.plot([1, 4, 9, 16])\nplt.title("Squares")\nplt.show()\nprint("plotted")' }, 'main.py'));
   await waitExit(8);
+  e = await evs();
+  const images = e.filter(x => x.t === 'image');
+  check('matplotlib emits a PNG image', images.length === 1, `${images.length} images`);
+  check('the image really is a PNG', (() => {
+    const b = images.at(-1)?.bytes;
+    // PNG magic: 89 50 4E 47. Anything else means savefig produced nothing useful.
+    return b && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+  })(), images.at(-1) ? `${images.at(-1).bytes.length} bytes` : 'none');
+  check('the program continued after show()', e.some(x => x.t === 'stdout' && x.text.includes('plotted')));
+  const errorsAfter = e.filter(x => x.t === 'error');
+  check('matplotlib did not raise', errorsAfter.length === errorsBefore,
+    errorsAfter.length > errorsBefore ? JSON.stringify(errorsAfter.at(-1)?.error?.message) : 'no new errors');
+
+  // 9. batch-tier stdin buffer
+  await p.evaluate(() => window.__run({ 'main.py': 'a=input()\nb=input()\nprint(int(a)+int(b))' }, 'main.py', '20\n22'));
+  await waitExit(9);
   e = await evs();
   check('pre-supplied stdin is drained when provided', e.some(x => x.t === 'stdout' && x.text.includes('42')));
 } catch (err) { console.log('EXCEPTION:', err.message); R.push(false); }
