@@ -14,7 +14,29 @@ the tab for nothing.
 
 ---
 
-## What it does
+## Status
+
+**Early. The execution runtime works; the platform around it does not exist yet.**
+
+Working today, and covered by tests that run in a real browser:
+
+- Real Python 3.14 in the browser, with blocking `input()` and a Stop button
+  that stops a `while True:`
+- turtle graphics, drawn from a retained display list
+- Tracebacks that point at the student's own line with no runtime frames
+- The editor, and the cross-origin sandbox it drives
+
+Described below but **not yet implemented**: accounts, classes, assignments,
+share links, embeds, the HTML/CSS/JS preview, matplotlib, and the Docker
+deployment. Those are the plan, not the present.
+
+If you are looking for something to run in a classroom next term, this is not
+it yet. If you are interested in the execution model, that part is real and
+you can drive it locally with `pnpm --filter @fledge/web dev`.
+
+---
+
+## What it will do
 
 - **Real Python 3.14**, not a reimplementation. `input()` blocks the way it does
   in a terminal, and Stop always stops.
@@ -36,26 +58,28 @@ the tab for nothing.
 - No AI features.
 - No autograding, no plagiarism detection.
 
-## Getting started
+## Running it today
 
-Requires Docker.
+There is no Docker image yet. From source:
 
 ```bash
 git clone https://github.com/TSKVenkat/fledge.git
 cd fledge
-cp .env.example .env
-
-# SECRET_KEY encrypts stored secrets. It has no default, on purpose.
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-# put that in SECRET_KEY, then set ADMIN_EMAIL and ADMIN_PASSWORD
-
-docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
+pnpm install
+pnpm --filter @fledge/web dev
 ```
 
-Open <http://localhost:8080> and sign in as the administrator you configured.
+Open <http://localhost:5173>. The sandbox is served from `127.0.0.1` on the same
+port — a different origin deliberately, so the security boundary exists in
+development too.
 
-[**Installation**](docs/guide/installation.md) covers running from source,
-upgrading, and what to change before putting it on a network.
+To check it end to end:
+
+```bash
+pnpm test                             # unit
+node packages/runtime/test/run.mjs    # the runtime, in a real browser
+node e2e/smoke.mjs                    # the editor, driven as a student
+```
 
 ## Documentation
 

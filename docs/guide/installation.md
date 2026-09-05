@@ -1,5 +1,11 @@
 # Installation
 
+::: warning Not implemented yet
+This page documents the intended design. The deployment, accounts and embed
+features it describes are not built. See the status section in the README for
+what actually works today.
+:::
+
 ## With Docker
 
 The supported way to run fledge. You need Docker and about 2 GB of disk.

@@ -1,5 +1,11 @@
 # Embedding
 
+::: warning Not implemented yet
+This page documents the intended design. The deployment, accounts and embed
+features it describes are not built. See the status section in the README for
+what actually works today.
+:::
+
 An embed is a runnable snippet inside a page you already have — a worksheet, a
 blog post, a virtual learning environment. The hosting page needs to change
 nothing: no headers, no configuration, no co-operation.

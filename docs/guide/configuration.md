@@ -1,5 +1,11 @@
 # Configuration
 
+::: warning Not implemented yet
+This page documents the intended design. The deployment, accounts and embed
+features it describes are not built. See the status section in the README for
+what actually works today.
+:::
+
 Configuration is environment variables, parsed once at start-up. A bad value
 stops the process immediately rather than failing on the first request that
 happens to touch it.
