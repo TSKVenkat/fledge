@@ -29,14 +29,17 @@ browser:
   created from the environment
 - Projects that save, and anonymous projects that reopen from a link with no
   account at all
+- Share links, optionally password-protected, and remixing a shared project
+  into your own copy
+- Classes with a join code, and a teacher creating a whole register of student
+  accounts in one go
+- Assignments: a starter project, a private copy per student, and a grid
+  showing everyone including the children who have not started
 - `docker compose up`, with the application and the sandbox on separate origins
 
-**Not yet implemented**: classes, assignments, share links, embeds, the
-HTML/CSS/JS preview, and matplotlib. Those are the plan, not the present.
-
-If you are looking for something to run a whole class from next term, it is not
-that yet -- there is nowhere to put a class. If you want a self-hosted place for
-students to write and run Python, that part works.
+**Not yet implemented**: the embed route, the HTML/CSS/JS preview, and
+matplotlib. The classroom features above exist in the API but do not all have
+screens yet, so some of them are reachable only through it.
 
 ---
 

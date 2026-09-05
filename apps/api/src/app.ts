@@ -12,6 +12,8 @@ import { authRoutes } from './routes/auth.ts';
 import { projectRoutes } from './routes/projects.ts';
 import { configRoutes } from './routes/config.ts';
 import { shareRoutes } from './routes/shares.ts';
+import { classRoutes } from './routes/classes.ts';
+import { assignmentRoutes } from './routes/assignments.ts';
 
 export async function buildApp(env: Env, db: Database): Promise<FastifyInstance> {
   const app = Fastify({
@@ -34,6 +36,8 @@ export async function buildApp(env: Env, db: Database): Promise<FastifyInstance>
   authRoutes(app, db, env);
   projectRoutes(app, db, env);
   shareRoutes(app, db, env);
+  classRoutes(app, db);
+  assignmentRoutes(app, db);
 
   return app;
 }
