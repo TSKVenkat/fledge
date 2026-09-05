@@ -43,9 +43,8 @@ browser:
   no storage and no way to reach the page hosting it
 - matplotlib figures
 
-**Not yet implemented**: the classroom features above exist in the API but do
-not all have screens yet, so classes and assignments are reachable only through
-it for now.
+Everything above has a screen and is covered by a test that drives it the way a
+teacher and a student would, against the Docker stack.
 
 ---
 

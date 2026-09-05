@@ -18,7 +18,14 @@ export default tseslint.config(
   {
     files: ['apps/web/**/*.tsx', 'apps/web/**/*.ts'],
     plugins: { 'react-hooks': reactHooks },
-    rules: { ...reactHooks.configs.recommended.rules },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      // Loading data in an effect and storing the result is exactly what these
+      // pages do. Without a data-fetching library there is nowhere else to put
+      // it, and adding one to satisfy a lint rule would be the tail wagging
+      // the dog.
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
   {
     // Test drivers run in Node but hold browser code in strings passed to
