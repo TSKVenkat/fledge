@@ -11,6 +11,7 @@ import { healthRoutes } from './routes/health.ts';
 import { authRoutes } from './routes/auth.ts';
 import { projectRoutes } from './routes/projects.ts';
 import { configRoutes } from './routes/config.ts';
+import { shareRoutes } from './routes/shares.ts';
 
 export async function buildApp(env: Env, db: Database): Promise<FastifyInstance> {
   const app = Fastify({
@@ -32,6 +33,7 @@ export async function buildApp(env: Env, db: Database): Promise<FastifyInstance>
   configRoutes(app, env);
   authRoutes(app, db, env);
   projectRoutes(app, db, env);
+  shareRoutes(app, db, env);
 
   return app;
 }
