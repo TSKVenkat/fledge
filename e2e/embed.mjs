@@ -2,27 +2,20 @@
    and checks a reader can run the program without that page co-operating. */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
+import { APP, SANDBOX, adminCookie, createProject, shareProject } from './lib/setup.mjs';
 
-const APP = 'http://localhost:8080';
-const SANDBOX = 'http://localhost:8081';
 const BLOG_PORT = 8199;
 
 const R = []; const check = (n, ok, d = '') => { R.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}${d ? '  — ' + d : ''}`); };
 
 // Sign in, make a project, share it.
-const login = await fetch(`${APP}/v1/auth/login`, {
-  method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ identifier: 'admin@example.org', password: 'correct horse battery staple' }),
-});
-const cookie = login.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
-const project = await (await fetch(`${APP}/v1/projects`, {
-  method: 'POST', headers: { 'content-type': 'application/json', cookie },
-  body: JSON.stringify({ title: 'Times table', files: { 'main.py': 'n = input("Which table? ")\nfor i in range(1, 4):\n    print(i, "x", n, "=", i * int(n))\n' } }),
-})).json();
-const shared = await (await fetch(`${APP}/v1/projects/${project.project.id}/shares`, {
-  method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: '{}',
-})).json();
-const token = shared.share.token;
+const cookie = await adminCookie();
+const project = await createProject(cookie, 'Times table',
+  { 'main.py': 'n = input("Which table? ")
+for i in range(1, 4):
+    print(i, "x", n, "=", i * int(n))
+' });
+const token = (await shareProject(cookie, project.id)).token;
 check('a share link was minted', typeof token === 'string' && token.length > 20);
 
 // A third-party page. No COOP, no COEP, no co-operation of any kind.

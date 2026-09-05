@@ -9,18 +9,15 @@
    ships unexecuted is not a fallback. */
 import { webkit } from 'playwright';
 import { createServer } from 'node:http';
+import { APP, SANDBOX, adminCookie, createProject, shareProject } from './lib/setup.mjs';
 
-const APP = 'http://localhost:8080', SANDBOX = 'http://localhost:8081', BLOG_PORT = 8198;
+const BLOG_PORT = 8198;
 const R = []; const check = (n, ok, d = '') => { R.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}${d ? '  — ' + d : ''}`); };
 const PROGRAM = 'a = input("First? ")\nb = input("Second? ")\nprint("Sum:", int(a) + int(b))\nimport turtle\nt = turtle.Turtle()\nfor _ in range(4):\n    t.forward(60); t.right(90)\n';
 
-const login = await fetch(`${APP}/v1/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ identifier: 'admin@example.org', password: 'correct horse battery staple' }) });
-const cookie = login.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
-const project = await (await fetch(`${APP}/v1/projects`, { method: 'POST', headers: { 'content-type': 'application/json', cookie },
-  body: JSON.stringify({ title: 'Adder', files: { 'main.py': PROGRAM } }) })).json();
-const token = (await (await fetch(`${APP}/v1/projects/${project.project.id}/shares`, { method: 'POST',
-  headers: { 'content-type': 'application/json', cookie }, body: '{}' })).json()).share.token;
+const cookie = await adminCookie();
+const project = await createProject(cookie, 'Adder', { 'main.py': PROGRAM });
+const token = (await shareProject(cookie, project.id)).token;
 
 const blog = createServer((req, res) => {
   const forced = req.url.includes('batch') ? '?tier=batch' : '';
