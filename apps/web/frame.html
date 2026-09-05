@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Program output</title>
+<style>
+  :root { color-scheme: light; }
+  html, body { margin: 0; height: 100%; background: #fff; }
+  #stage { position: relative; height: 100%; display: grid; }
+  canvas { width: 100%; height: 100%; display: block; }
+  #images { position: absolute; inset: 0; overflow: auto; padding: .5rem; pointer-events: none; }
+</style>
+</head>
+<body>
+  <div id="stage"><canvas id="canvas"></canvas><div id="images"></div></div>
+  <script type="module" src="/src/frame.ts"></script>
+</body>
+</html>
