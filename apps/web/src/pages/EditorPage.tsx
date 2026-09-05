@@ -1,29 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Editor } from '../Editor.tsx';
+import { Console } from '../Console.tsx';
 import { useRunner } from '../use-runner.ts';
 import { api, ApiError, type ShareLink } from '../lib/api.ts';
-import { Console } from '../Console.tsx';
 import { loadSandboxOrigin } from '../lib/config.ts';
 import { useSession } from '../lib/session.tsx';
 
-const WEB_STARTER = `<!-- Press Run, or Ctrl+Enter. -->
-<h1>Hello</h1>
-<p id="out">…</p>
+type Kind = 'python' | 'web';
+type Files = Record<string, string>;
 
-<style>
-  body { font: 16px system-ui; padding: 1rem; }
-  h1 { color: #2d6cdf; }
-</style>
-
-<script>
-  const names = ["world", "everyone", "class"];
-  document.getElementById("out").textContent = "Hello, " + names[1] + "!";
-  console.log("the console works here too");
-</script>
-`;
-
-const STARTER = `# Press Run, or Ctrl+Enter.
+const STARTERS: Record<Kind, { entry: string; files: Files }> = {
+  python: {
+    entry: 'main.py',
+    files: {
+      'main.py': `# Press Run, or Ctrl+Enter.
 name = input("What is your name? ")
 print("Hello,", name)
 
@@ -33,62 +24,142 @@ t.pencolor("#2d6cdf")
 for i in range(36):
     t.forward(90)
     t.right(170)
-`;
+`,
+    },
+  },
+  web: {
+    entry: 'index.html',
+    files: {
+      'index.html': `<!-- Press Run, or Ctrl+Enter. -->
+<link rel="stylesheet" href="style.css">
+<h1>Hello</h1>
+<p id="out">…</p>
+<script src="app.js"></script>
+`,
+      'style.css': `body { font: 16px system-ui; padding: 1rem; }
+h1 { color: #2d6cdf; }
+`,
+      'app.js': `const names = ["world", "everyone", "class"];
+document.getElementById("out").textContent = "Hello, " + names[1] + "!";
+console.log("the console works here too");
+`,
+    },
+  },
+};
+
+/** The same rule the API enforces; a path the editor accepts and the API
+ *  refuses is exactly the confusing failure this is meant to prevent. */
+const PATH_RULE = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/;
+function pathProblem(path: string, existing: Files): string | null {
+  if (!path) return 'Give the file a name.';
+  if (path.length > 200) return 'That name is too long.';
+  if (!PATH_RULE.test(path)) return 'Use letters, numbers, dots, dashes and slashes.';
+  if (path.split('/').includes('..')) return 'Paths cannot go up a directory.';
+  if (path in existing) return 'There is already a file with that name.';
+  return null;
+}
 
 export function EditorPage() {
   const { id } = useParams();
+  const { user } = useSession();
+
+  const [kind, setKind] = useState<Kind>('python');
+  const [files, setFiles] = useState<Files>(STARTERS.python.files);
+  const [entry, setEntry] = useState(STARTERS.python.entry);
+  const [active, setActive] = useState(STARTERS.python.entry);
   const [title, setTitle] = useState('Untitled');
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   const [saved, setSaved] = useState<'clean' | 'saving' | 'dirty' | 'error'>('clean');
+  const [tab, setTab] = useState<'console' | 'canvas'>('console');
+  const [newPath, setNewPath] = useState<string | null>(null);
+  const [pathError, setPathError] = useState<string | null>(null);
   /**
    * Bumped whenever a document arrives from the server. CodeMirror owns its
-   * text and mounts once, so a project loaded after the first render would
-   * otherwise never appear: the editor sits showing the starter while the
-   * right file is in state. Remounting is the correct response to "this is a
-   * different document", and this is what makes it one.
+   * text and mounts once; the editor is keyed on this and on the active file,
+   * so both "the project loaded" and "a different tab" are the same thing to
+   * it -- a different document, so remount.
    */
   const [documentKey, setDocumentKey] = useState(0);
-  const { user } = useSession();
-  const [ownerId, setOwnerId] = useState<string | null>(null);
+
   const [shares, setShares] = useState<ShareLink[] | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
-  // Only the owner is offered sharing: an anonymous project has nobody to be
-  // accountable for the link, and a share on someone else's work is refused
-  // by the API anyway.
   const canShare = id !== undefined && user !== null && (ownerId === user.id || user.role === 'admin');
-  const [kind, setKind] = useState<'python' | 'web'>('python');
-  const [python, setPython] = useState(STARTER);
-  const [web, setWeb] = useState(WEB_STARTER);
-  const code = kind === 'python' ? python : web;
-  const setCode = (next: string) => {
-    if (kind === 'python') setPython(next); else setWeb(next);
-    if (id) setSaved('dirty');
-  };
-  const [tab, setTab] = useState<'console' | 'canvas'>('console');
+
   const stage = useRef<HTMLDivElement>(null);
   const [origin, setOrigin] = useState<string | null>(null);
   useEffect(() => { void loadSandboxOrigin().then(setOrigin); }, []);
   const runner = useRunner(stage, origin);
 
-  // An anonymous project's edit token lives in this browser and nowhere else:
-  // it is what lets someone come back tomorrow without an account.
+  // An anonymous project's edit token lives in this browser and nowhere else.
   const tokenKey = id ? `fledge.edit.${id}` : null;
+  const token = () => (tokenKey ? (localStorage.getItem(tokenKey) ?? undefined) : undefined);
 
   useEffect(() => {
     if (!id) return;
-    const token = tokenKey ? (localStorage.getItem(tokenKey) ?? undefined) : undefined;
-    void api.getProject(id, token)
+    void api.getProject(id, token())
       .then((loaded) => {
+        const k = loaded.project.kind;
+        const e = loaded.project.settings.entry ?? STARTERS[k].entry;
         setTitle(loaded.project.title);
         setOwnerId(loaded.project.ownerId);
-        setKind(loaded.project.kind);
-        const entry = loaded.project.settings.entry ?? (loaded.project.kind === 'web' ? 'index.html' : 'main.py');
-        const body = loaded.files[entry] ?? Object.values(loaded.files)[0] ?? '';
-        if (loaded.project.kind === 'web') setWeb(body); else setPython(body);
+        setKind(k);
+        setFiles(loaded.files);
+        setEntry(e);
+        setActive(e in loaded.files ? e : (Object.keys(loaded.files)[0] ?? e));
+        setTab(k === 'web' ? 'canvas' : 'console');
         setDocumentKey((n) => n + 1);
       })
       .catch((e: unknown) => { if (e instanceof ApiError) setSaved('error'); });
-  }, [id, tokenKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const switchKind = (k: Kind) => {
+    if (k === kind || id) return;     // a saved project's kind is fixed
+    setKind(k);
+    setFiles(STARTERS[k].files);
+    setEntry(STARTERS[k].entry);
+    setActive(STARTERS[k].entry);
+    setTab(k === 'web' ? 'canvas' : 'console');
+    setDocumentKey((n) => n + 1);
+  };
+
+  const edit = (next: string) => {
+    setFiles((f) => ({ ...f, [active]: next }));
+    if (id) setSaved('dirty');
+  };
+
+  const addFile = () => {
+    const path = (newPath ?? '').trim();
+    const problem = pathProblem(path, files);
+    if (problem) { setPathError(problem); return; }
+    setFiles((f) => ({ ...f, [path]: '' }));
+    setActive(path);
+    setNewPath(null);
+    setPathError(null);
+    setDocumentKey((n) => n + 1);
+    if (id) setSaved('dirty');
+  };
+
+  const removeFile = (path: string) => {
+    if (path === entry) return;        // the entry point is what runs; it stays
+    if (!confirm(`Remove ${path}?`)) return;
+    setFiles((f) => { const next = { ...f }; delete next[path]; return next; });
+    if (active === path) { setActive(entry); setDocumentKey((n) => n + 1); }
+    if (id) setSaved('dirty');
+  };
+
+  const save = async () => {
+    if (!id) return;
+    setSaved('saving');
+    try { await api.saveFiles(id, files, token()); setSaved('clean'); }
+    catch { setSaved('error'); }
+  };
+
+  const run = () => {
+    setTab(kind === 'web' ? 'canvas' : 'console');
+    runner.run({ kind, files, entry });
+  };
 
   const loadShares = () => {
     if (!id || !canShare) return;
@@ -106,40 +177,19 @@ export function EditorPage() {
   };
   const openSharing = () => { setSharing((open) => !open); if (!sharing) loadShares(); };
 
-  const save = async () => {
-    if (!id) return;
-    setSaved('saving');
-    const token = tokenKey ? (localStorage.getItem(tokenKey) ?? undefined) : undefined;
-    const entry = kind === 'web' ? 'index.html' : 'main.py';
-    try {
-      await api.saveFiles(id, { [entry]: kind === 'web' ? web : python }, token);
-      setSaved('clean');
-    } catch { setSaved('error'); }
-  };
-
   const busy = runner.status === 'running' || runner.status === 'awaitingInput' || runner.status === 'stopping';
   const booting = runner.status === 'created' || runner.status === 'loading';
-
-  const run = () => {
-    if (kind === 'web') {
-      // The page is the output, so show it rather than the console; anything
-      // the page logs still arrives in the console tab.
-      setTab('canvas');
-      runner.run({ kind: 'web', files: { 'index.html': web }, entry: 'index.html' });
-      return;
-    }
-    setTab('console');
-    runner.run({ kind: 'python', files: { 'main.py': python }, entry: 'main.py' });
-  };
+  const paths = Object.keys(files).sort((a, b) => (a === entry ? -1 : b === entry ? 1 : a.localeCompare(b)));
 
   return (
     <div className="app">
       <header>
-        <div className="brand">fledge</div>
+        <a className="brand" href="/">fledge</a>
         <div className="kinds" role="tablist" aria-label="Language">
           {(['python', 'web'] as const).map((k) => (
-            <button key={k} role="tab" aria-selected={kind === k}
-                    onClick={() => { setKind(k); setTab(k === 'web' ? 'canvas' : 'console'); }}>
+            <button key={k} role="tab" aria-selected={kind === k} disabled={id !== undefined && kind !== k}
+                    title={id ? 'A saved project keeps its language' : undefined}
+                    onClick={() => switchKind(k)}>
               {k === 'python' ? 'Python' : 'Web'}
             </button>
           ))}
@@ -147,20 +197,14 @@ export function EditorPage() {
         <div className="actions">
           {busy
             ? <button className="stop" onClick={runner.stop}>Stop</button>
-            : <button className="run" onClick={run} disabled={booting}>
-                {booting ? 'Starting…' : 'Run'}
-              </button>}
+            : <button className="run" onClick={run} disabled={booting}>{booting ? 'Starting…' : 'Run'}</button>}
         </div>
         <div className="meta">
           {id && (
             <>
-              {/* The title is editable in place: renaming is the most common
-                  thing done to a project after writing it, and a dialog for it
-                  is one dialog too many. */}
               <input className="title" value={title} aria-label="Project title"
                      onChange={(e) => setTitle(e.target.value)}
-                     onBlur={() => { if (id) void api.patchProject(id, { title: title.trim() || 'Untitled' },
-                       tokenKey ? (localStorage.getItem(tokenKey) ?? undefined) : undefined).catch(() => setSaved('error')); }} />
+                     onBlur={() => void api.patchProject(id, { title: title.trim() || 'Untitled' }, token()).catch(() => setSaved('error'))} />
               <button className="link" onClick={() => void save()} disabled={saved === 'saving'}>
                 {saved === 'saving' ? 'Saving…' : saved === 'dirty' ? 'Save' : saved === 'error' ? 'Save failed' : 'Saved'}
               </button>
@@ -169,8 +213,7 @@ export function EditorPage() {
           )}
           {runner.capabilities && (
             <span className="badge" title={`tier: ${runner.capabilities.tier}`}>
-              Python {runner.capabilities.python ?? '3'}
-              {!runner.capabilities.blockingInput && ' · batch input'}
+              Python {runner.capabilities.python ?? '3'}{!runner.capabilities.blockingInput && ' · batch input'}
             </span>
           )}
         </div>
@@ -182,12 +225,32 @@ export function EditorPage() {
       )}
 
       <main>
-        <section className="pane">
-          {/* Keyed on the language: CodeMirror owns its document and mounts
-              once, so changing `value` alone would leave Python on screen after
-              switching to Web. A different language is a different document, so
-              remounting is the correct behaviour rather than a workaround. */}
-          <Editor key={`${kind}-${documentKey}`} value={code} onChange={setCode} onRun={run} />
+        <section className="pane files">
+          <div className="filetabs" role="tablist" aria-label="Files">
+            {paths.map((path) => (
+              <span key={path} className="filetab" data-active={path === active}>
+                <button role="tab" aria-selected={path === active}
+                        onClick={() => { if (path !== active) { setActive(path); setDocumentKey((n) => n + 1); } }}>
+                  {path}
+                </button>
+                {path !== entry && (
+                  <button className="close" aria-label={`Remove ${path}`} onClick={() => removeFile(path)}>×</button>
+                )}
+              </span>
+            ))}
+            {newPath === null
+              ? <button className="link" onClick={() => setNewPath('')}>+ file</button>
+              : (
+                <span className="newfile">
+                  <input autoFocus value={newPath} placeholder="helper.py" aria-label="New file name"
+                         onChange={(e) => { setNewPath(e.target.value); setPathError(null); }}
+                         onKeyDown={(e) => { if (e.key === 'Enter') addFile(); if (e.key === 'Escape') { setNewPath(null); setPathError(null); } }} />
+                  <button className="link" onClick={addFile}>Add</button>
+                  {pathError && <span className="bad small">{pathError}</span>}
+                </span>
+              )}
+          </div>
+          <Editor key={`${active}-${documentKey}`} value={files[active] ?? ''} onChange={edit} onRun={run} />
         </section>
 
         <section className="pane output">
@@ -197,19 +260,15 @@ export function EditorPage() {
               {kind === 'web' ? 'Page' : 'Drawing'}{runner.hasDrawing ? ' •' : ''}
             </button>
           </div>
-
           <Console runner={runner} hidden={tab !== 'console'} />
-
-          {/* Always mounted: tearing the frame down to switch tabs would throw
-              away a booted interpreter, and useRunner needs this element to
-              exist from the first render. Hidden, never unmounted. */}
+          {/* Always mounted: useRunner needs this element from the first render,
+              and tearing it down would discard a booted interpreter. */}
           <div className="stage" ref={stage} hidden={tab !== 'canvas'} />
         </section>
       </main>
     </div>
   );
 }
-
 
 /**
  * Links are shown with their token because the API keeps a sealed copy for

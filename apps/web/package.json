@@ -7,7 +7,7 @@
     "dev": "node scripts/link-assets.mjs && vite",
     "build": "node scripts/link-assets.mjs && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.sw.json",
     "assets": "node scripts/link-assets.mjs"
   },
   "dependencies": {

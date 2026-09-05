@@ -48,10 +48,11 @@ and getting it wrong produces share links that work for you and nobody else.
 
 ## Offline and slow networks
 
-The Python runtime is about 12 MB, downloaded once and then cached. It is served
-from **your own instance**, not from a CDN, so a school with a filtered or
-absent internet connection still gets Python: it comes off the same LAN as
-everything else.
+The Python runtime is about 12 MB. It is served from **your own instance**, not
+from a CDN, and a service worker on the sandbox origin keeps it once a machine
+has fetched it once -- so a laptop that booted Python on Monday boots it again
+on Tuesday with the network down. A school with a filtered or intermittent
+connection gets Python off its own LAN, or off the machine itself.
 
 Package wheels — `matplotlib`, `numpy` and the rest — are a separate matter.
 They are **not** bundled, because the full set is hundreds of megabytes and most

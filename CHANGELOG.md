@@ -26,8 +26,21 @@ exists on `main`.
 - An account given a password by someone else -- a bulk-created student, a new
   teacher -- must choose its own before reaching anything else.
 - Renaming a project in place, and deleting one.
+- Projects with more than one file: tabs in the editor, a helper module that
+  `main.py` can import, and a web project whose HTML pulls in its own CSS and
+  JavaScript by relative reference. The same path rule is enforced in the
+  editor and the API, so a name the editor accepts is never one the API
+  refuses.
+- A service worker on the sandbox origin caches the runtime core and any package
+  wheels after first use, so a machine boots Python again with no network.
 - `e2e/boot-throttled.mjs`: cold-boot timing at 4x CPU throttling and Fast 3G
   (7.9 s to Run; 3.9 s warm).
+
+### Fixed
+- Relative stylesheets and scripts in a web project did not load. They were
+  turned into blob: URLs, which are bound to the origin that made them, and the
+  preview runs at an opaque origin precisely so it cannot reach ours. They are
+  inlined into the document instead.
 
 ### Security
 - The sandbox is a separate origin and must be a separate host name, not a port.

@@ -24,9 +24,6 @@ as declined; the second list is settled.
 - **A real classroom.** No teacher has used this. Everything above is
   engineering judgement about what a teacher wants; the first afternoon with one
   will correct some of it.
-- A service worker on the sandbox origin, so the runtime is cached across visits
-  rather than only by the browser's ordinary cache.
-- Multi-file projects in the editor. The API stores them; the editor shows one.
 
 ## Deferred
 

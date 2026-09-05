@@ -31,6 +31,13 @@ export default defineConfig({
         index: resolve(import.meta.dirname, 'index.html'),
         frame: resolve(import.meta.dirname, 'frame.html'),
         embed: resolve(import.meta.dirname, 'embed.html'),
+        sw: resolve(import.meta.dirname, 'src/sw.ts'),
+      },
+      output: {
+        // A service worker must live at a stable URL: the browser looks for
+        // the same path on every visit to decide whether it has changed. Every
+        // other chunk keeps its content hash.
+        entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js'),
       },
     },
   },

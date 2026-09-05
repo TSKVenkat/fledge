@@ -56,46 +56,70 @@ const MIME: Record<string, string> = {
 const mimeFor = (path: string) => MIME[path.split('.').pop()?.toLowerCase() ?? ''] ?? 'text/plain';
 
 /**
- * Relative references are rewritten to blob URLs built from the project's own
- * files. A student writing `<script src="app.js">` gets what they expect, and
- * nothing is fetched from the network to make it happen.
+ * Relative references to the project's own files are INLINED, not linked.
+ *
+ * The first version built blob: URLs for them. Those are bound to the origin
+ * that created them -- ours -- and the preview runs at an opaque origin, on
+ * purpose, so that it cannot reach anything of ours. It therefore could not
+ * reach the blobs either, and every relative stylesheet and script silently
+ * failed to load. Inlining is the only approach that works regardless of
+ * origin, and it means nothing is fetched from anywhere to render the page.
  */
 export function buildPreview(files: Record<string, string>, entry: string): {
   html: string;
   revoke: () => void;
 } {
-  const urls = new Map<string, string>();
-  const created: string[] = [];
-
-  for (const [path, content] of Object.entries(files)) {
-    if (path === entry) continue;
-    const url = URL.createObjectURL(new Blob([content], { type: mimeFor(path) }));
-    urls.set(path, url);
-    urls.set(`./${path}`, url);
-    urls.set(`/${path}`, url);
-    created.push(url);
-  }
+  const lookup = (value: string): string | undefined => {
+    const path = value.replace(/^\.\//, '').replace(/^\//, '');
+    return path === entry ? undefined : files[path];
+  };
+  // A closing tag inside inlined script or style would end the element early
+  // and hand the rest of the file to the parser as HTML.
+  const safeScript = (code: string) => code.replace(/<\/(script)/gi, '<\\/$1');
+  const safeStyle = (css: string) => css.replace(/<\/(style)/gi, '<\\/$1');
 
   const source = files[entry] ?? '';
-  const rewritten = source.replace(
-    /\b(src|href)\s*=\s*(["'])([^"']+)\2/gi,
-    (whole, attribute: string, quote: string, value: string) => {
-      // Absolute and protocol-relative references are left alone: a student
-      // linking to a real stylesheet should get it.
-      if (/^(https?:|data:|blob:|#|\/\/)/i.test(value)) return whole;
-      const url = urls.get(value);
-      return url ? `${attribute}=${quote}${url}${quote}` : whole;
-    },
-  );
+  let html = source
+    // <link rel="stylesheet" href="x.css"> -> <style>...</style>
+    .replace(/<link\b[^>]*\bhref\s*=\s*(["'])([^"']+)\1[^>]*>/gi, (whole, _q: string, href: string) => {
+      if (!/rel\s*=\s*["']?stylesheet/i.test(whole)) return whole;
+      if (/^(https?:|data:|blob:|\/\/)/i.test(href)) return whole;
+      const css = lookup(href);
+      return css === undefined ? whole : `<style data-from="${href}">${safeStyle(css)}</style>`;
+    })
+    // <script src="x.js"></script> -> <script>...</script>
+    .replace(/<script\b([^>]*)\bsrc\s*=\s*(["'])([^"']+)\2([^>]*)>\s*<\/script>/gi,
+      (whole, before: string, _q: string, src: string, after: string) => {
+        if (/^(https?:|data:|blob:|\/\/)/i.test(src)) return whole;
+        const js = lookup(src);
+        if (js === undefined) return whole;
+        const attrs = (before + after).replace(/\s+/g, ' ').trim();
+        return `<script${attrs ? ' ' + attrs : ''} data-from="${src}">${safeScript(js)}</script>`;
+      })
+    // Anything else relative (img src, etc.) -> a data: URI of the file.
+    .replace(/\b(src|href)\s*=\s*(["'])([^"']+)\2/gi, (whole, attribute: string, quote: string, value: string) => {
+      if (/^(https?:|data:|blob:|#|\/\/|mailto:)/i.test(value)) return whole;
+      const body = lookup(value);
+      if (body === undefined) return whole;
+      const mime = mimeFor(value);
+      return `${attribute}=${quote}data:${mime};base64,${toBase64(body)}${quote}`;
+    });
 
-  const html = /<html[\s>]/i.test(rewritten)
-    ? rewritten.replace(/<head[^>]*>/i, (head) => head + CONSOLE_SHIM)
-    : `<!doctype html><html><head><meta charset="utf-8">${CONSOLE_SHIM}</head><body>${rewritten}</body></html>`;
+  html = /<html[\s>]/i.test(html)
+    ? (/<head[^>]*>/i.test(html)
+        ? html.replace(/<head[^>]*>/i, (head) => head + CONSOLE_SHIM)
+        : CONSOLE_SHIM + html)
+    : `<!doctype html><html><head><meta charset="utf-8">${CONSOLE_SHIM}</head><body>${html}</body></html>`;
 
-  // If there was no <head> to inject into, put the shim first regardless.
-  const withShim = html.includes(CONSOLE_SHIM) ? html : CONSOLE_SHIM + html;
+  // Nothing to revoke any more; kept so callers need not change.
+  return { html, revoke: () => {} };
+}
 
-  return { html: withShim, revoke: () => { for (const url of created) URL.revokeObjectURL(url); } };
+function toBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 
 /** Draw ops are a Python concern; the web preview never produces them. */

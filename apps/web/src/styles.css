@@ -195,3 +195,16 @@ td { padding: .35rem .4rem; border-bottom: 1px solid var(--line); }
 input.title { border-color: transparent; background: transparent; font-weight: 600; padding: .2rem .4rem; width: 14rem; }
 input.title:hover, input.title:focus { border-color: var(--line); background: var(--surface); }
 tr.muted td { color: var(--muted); }
+
+/* --- file tabs ------------------------------------------------------------- */
+.pane.files { grid-template-rows: auto 1fr; }
+.filetabs { display: flex; align-items: center; gap: .15rem; padding: .3rem .5rem 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; font-family: var(--mono); font-size: .82rem; }
+.filetab { display: inline-flex; align-items: center; border-radius: 6px 6px 0 0; }
+.filetab[data-active="true"] { background: var(--bg); }
+.filetab > button[role="tab"] { background: transparent; color: var(--muted); padding: .3rem .6rem; font: inherit; border-radius: 6px 6px 0 0; }
+.filetab[data-active="true"] > button[role="tab"] { color: var(--ink); }
+.filetab .close { background: transparent; color: var(--muted); padding: 0 .4rem 0 0; font: inherit; line-height: 1; }
+.filetab .close:hover { color: var(--err); }
+.filetabs .link { font-family: system-ui, sans-serif; }
+.newfile { display: inline-flex; gap: .3rem; align-items: center; }
+.newfile input { font: inherit; padding: .2rem .4rem; width: 9rem; }

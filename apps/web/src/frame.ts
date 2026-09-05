@@ -22,3 +22,13 @@ startFrame({
       type: 'module',
     }),
 });
+
+// Registered from the sandbox frame, which is the only document that fetches
+// the runtime. allow-same-origin on the frame is what permits this; an opaque
+// origin cannot register a worker, which is one reason the sandbox is a real
+// origin rather than an opaque one.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {
+    // A worker that fails to register costs a repeat download, nothing more.
+  });
+}
