@@ -56,6 +56,7 @@ node e2e/classroom.mjs      # a whole lesson, teacher and student
 node e2e/admin.mjs          # creating and disabling teachers
 node e2e/multifile.mjs      # projects with several files, Python and web
 node e2e/offline.mjs        # the runtime boots from cache with the network gone
+node e2e/webkit.mjs         # a real WebKit engine, plus the batch tier forced
 node e2e/boot-throttled.mjs # cold-boot timing under CPU and network throttling
 ```
 

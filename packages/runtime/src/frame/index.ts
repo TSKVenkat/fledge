@@ -24,6 +24,8 @@ export interface FrameOptions {
   /** Where package wheels come from; see the note in the worker. */
   packageBaseUrl: string;
   createWorker: () => Worker;
+  /** Pretend the browser offers less than it does; see detectCapabilities. */
+  forceTier?: 'batch';
 }
 
 export function startFrame(options: FrameOptions): void {
@@ -71,7 +73,7 @@ export function startFrame(options: FrameOptions): void {
     switch (m.t) {
       case 'booted': {
         booted = true;
-        const caps = detectCapabilities();
+        const caps = detectCapabilities(options.forceTier);
         toHost({ t: 'ready', v: PROTOCOL_VERSION, caps: { ...caps, python: m.python } });
         break;
       }
@@ -164,7 +166,7 @@ export function startFrame(options: FrameOptions): void {
       sessionId = data.sessionId;
       hostOrigin = event.origin;
       toWorker({ t: 'boot', indexUrl: options.pyodideUrl, pythonUrl: options.pythonUrl,
-                packageBaseUrl: options.packageBaseUrl });
+                packageBaseUrl: options.packageBaseUrl, forceBatch: options.forceTier === 'batch' });
       for (const pending of held.splice(0)) toHost(pending);
       return;
     }

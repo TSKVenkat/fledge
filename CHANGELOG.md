@@ -36,6 +36,12 @@ exists on `main`.
 - `e2e/boot-throttled.mjs`: cold-boot timing at 4x CPU throttling and Fast 3G
   (7.9 s to Run; 3.9 s warm).
 
+### Changed
+- `?tier=batch` on a frame or embed URL forces the degraded tier, for testing
+  and for seeing what an older browser gets. Running the suite in a real WebKit
+  engine showed WebKit 26.5 has JSPI, so a Safari embed prompts live; the
+  documentation said otherwise and now does not.
+
 ### Fixed
 - Relative stylesheets and scripts in a web project did not load. They were
   turned into blob: URLs, which are bound to the origin that made them, and the

@@ -33,6 +33,7 @@ let inputRequestId = 0;
 /** Lines pre-supplied by the host, drained by input() in the batch tier. */
 let stdinQueue: string[] = [];
 let useBlockingInput = true;
+let forceBatch = false;
 
 /** Draw ops are batched per frame: a spiral is thousands of segments and one
  *  postMessage each would swamp the channel. */
@@ -255,11 +256,11 @@ async function run(id: number, program: Program): Promise<void> {
 self.onmessage = async (event: MessageEvent<FrameToWorker>) => {
   const msg = event.data;
   try {
-    if (msg.t === 'boot') { await boot(msg.indexUrl, msg.pythonUrl, msg.packageBaseUrl); return; }
+    if (msg.t === 'boot') { forceBatch = msg.forceBatch === true; await boot(msg.indexUrl, msg.pythonUrl, msg.packageBaseUrl); return; }
     if (msg.t === 'run') {
-      useBlockingInput =
+      useBlockingInput = !forceBatch && (
         typeof (globalThis as { WebAssembly?: { Suspending?: unknown } }).WebAssembly?.Suspending === 'function' ||
-        typeof SharedArrayBuffer !== 'undefined';
+        typeof SharedArrayBuffer !== 'undefined');
       await run(msg.runId, msg.program);
       return;
     }

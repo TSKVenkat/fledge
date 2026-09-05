@@ -63,7 +63,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
       - name: Build and start the stack
         run: |
           printf 'SECRET_KEY=%s\nADMIN_EMAIL=%s\nADMIN_PASSWORD=%s\nPOSTGRES_PASSWORD=%s\n' \
@@ -78,6 +78,7 @@ jobs:
       - run: node e2e/admin.mjs
       - run: node e2e/multifile.mjs
       - run: node e2e/offline.mjs
+      - run: node e2e/webkit.mjs
       - name: Stack logs on failure
         if: failure()
         run: docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color | tail -200

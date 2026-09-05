@@ -6,7 +6,10 @@
  */
 import { startFrame } from '@fledge/runtime';
 
+const forced = new URL(location.href).searchParams.get('tier');
+
 startFrame({
+  forceTier: forced === 'batch' ? 'batch' : undefined,
   canvas: document.getElementById('canvas') as HTMLCanvasElement,
   imageSlot: document.getElementById('images') as HTMLElement,
   previewSlot: document.getElementById('preview') as HTMLElement,

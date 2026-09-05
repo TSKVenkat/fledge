@@ -28,7 +28,20 @@ export function tierFor(isolated: boolean, sab: boolean, jspi: boolean): Tier {
   return 'batch';
 }
 
-export function detectCapabilities(): RunnerCapabilities {
+/**
+ * `force` exists so the degraded tiers can be exercised on a browser that does
+ * not need them. Every engine this project has been run on turns out to offer
+ * either JSPI or SharedArrayBuffer, so without an override the batch tier would
+ * be code that ships and is never executed. It is also the honest way to show a
+ * teacher what a student on an older browser sees.
+ */
+export function detectCapabilities(force?: Tier): RunnerCapabilities {
+  if (force === 'batch') {
+    return {
+      tier: 'batch', blockingInput: false, interrupt: 'terminate', animation: 'replay',
+      crossOriginIsolated: false, sharedArrayBuffer: false, jspi: false,
+    };
+  }
   const isolated = globalThis.crossOriginIsolated === true;
   const sab = detectSharedArrayBuffer();
   const jspi = detectJspi();

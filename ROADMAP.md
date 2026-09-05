@@ -5,10 +5,13 @@ as declined; the second list is settled.
 
 ## Next
 
-- **Safari.** The batch tier — a pre-filled Input box and turtle drawings
-  replayed after the program finishes — is designed, typed and unit-tested, and
-  has never run in WebKit. Until it has, every claim about Safari embeds is an
-  inference. This is the largest untested assumption in the project.
+- **Older Safari.** The design assumed Safari had no JSPI. Running the suite in
+  a real WebKit engine (26.5, via Playwright) showed it does: a WebKit embed on a
+  third-party page prompts live, exactly as Chrome does. The batch tier is now
+  exercised only by forcing it (`?tier=batch`), because no engine to hand lacks
+  both JSPI and SharedArrayBuffer. Which Safari versions *do* lack JSPI, and how
+  many students are on them, is unmeasured -- and is what would make the batch
+  tier matter.
 - **Cold boot on real school hardware.** Measured so far only on a desktop made
   slower (`e2e/boot-throttled.mjs`, Chrome DevTools throttling):
 

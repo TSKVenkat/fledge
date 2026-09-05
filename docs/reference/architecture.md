@@ -51,7 +51,7 @@ is available and negotiates a tier at boot.
 | | Isolated | Suspending | Batch |
 |---|---|---|---|
 | Needs | cross-origin isolation | JSPI | nothing |
-| Typically | the editor, on your origin | an embed on Chrome, Edge, Firefox | an embed on Safari |
+| Typically | the editor, on your origin | an embed on any current browser, Safari included | an embed on an older browser with neither JSPI nor shared memory |
 | `input()` | blocks | blocks | reads a pre-filled box |
 | Stop | graceful, interpreter survives | terminates the worker | terminates the worker |
 
@@ -70,10 +70,15 @@ have to opt in, and a teacher's blog never will. For a while that looked like it
 capped embeds at the degraded tier.
 
 It does not, for two reasons. JSPI gives a blocking `input()` inside a worker
-with no isolation and no shared memory at all. And Stop never depended on
-isolation, because terminating a worker always works. Isolation buys a *graceful*
-interrupt that keeps the interpreter alive — a real improvement, and an optional
-one.
+with no isolation and no shared memory at all — and, contrary to the data this
+design was first drawn from, WebKit has it too: a real WebKit 26.5 embed on a
+headerless page prompts live. And Stop never depended on isolation, because
+terminating a worker always works. Isolation buys a *graceful* interrupt that
+keeps the interpreter alive — a real improvement, and an optional one.
+
+The batch tier can be forced with `?tier=batch` on a frame or embed URL. That is
+how it is tested, and how a teacher can see what a student on an older browser
+would see.
 
 ## Errors
 

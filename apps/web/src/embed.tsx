@@ -40,7 +40,10 @@ function Embed() {
   const stage = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
   // The frame is on this very origin, so the runner embeds a same-origin child.
-  const runner = useRunner(stage, location.origin);
+  // ?tier=batch on the embed URL is passed through to the frame, so the
+  // degraded path can be seen and tested on any browser.
+  const forcedTier = new URL(location.href).searchParams.get('tier') === 'batch' ? '?tier=batch' : '';
+  const runner = useRunner(stage, location.origin, `/frame.html${forcedTier}`);
 
   useEffect(() => {
     fetch(`/v1/shares/${token()}`)

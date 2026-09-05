@@ -29,7 +29,7 @@ export interface RunnerHook {
  * created and nothing ever retries. An early `return <Loading/>` above the
  * mount point is enough to break it, silently.
  */
-export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOrigin: string | null): RunnerHook {
+export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOrigin: string | null, framePath = '/frame.html'): RunnerHook {
   const runnerRef = useRef<Runner | null>(null);
   const [status, setStatus] = useState<RunnerStatus>('created');
   const [capabilities, setCapabilities] = useState<RunnerCapabilities | null>(null);
@@ -43,7 +43,7 @@ export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOri
     let disposed = false;
     let runner: Runner | null = null;
 
-    createRunner({ mount: mount.current, sandboxOrigin, framePath: '/frame.html' })
+    createRunner({ mount: mount.current, sandboxOrigin, framePath })
       .then((r) => {
         if (disposed) { r.dispose(); return; }
         runner = r;
@@ -71,7 +71,7 @@ export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOri
       .catch((err: Error) => setLines((l) => [...l, { kind: 'err', text: err.message }]));
 
     return () => { disposed = true; runner?.dispose(); runnerRef.current = null; };
-  }, [mount, sandboxOrigin]);
+  }, [mount, sandboxOrigin, framePath]);
 
   const run = useCallback((program: Program) => {
     setLines([]);

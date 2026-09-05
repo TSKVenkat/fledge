@@ -28,16 +28,14 @@ iframe yourself and give it a fixed height:
 Everything runs in the reader's own browser. They can edit the code and run it
 again; nothing they do is saved, and nothing reaches your instance.
 
-The one thing that varies is `input()`:
+On every current browser — Chrome, Edge, Firefox and Safari — `input()` prompts
+and waits, exactly as in the editor.
 
-- **Chrome, Edge, Firefox** — `input()` prompts and waits, exactly as in the
-  editor.
-- **Safari** — the embed shows an **Input** box to fill in before pressing Run,
-  and the program reads its lines in order.
-
-This is a browser capability difference, not a setting. The embed states which
-mode it is in, and offers a **Run interactively** link that opens the program on
-your instance, where it is fully interactive in every browser.
+On an older browser without the capability that makes that possible, the embed
+shows an **Input** box to fill in before pressing Run, reads its lines in order,
+says so, and offers a **Run interactively** link that opens the program on your
+instance. You can see that mode on any browser by adding `?tier=batch` to an
+embed's URL.
 
 ## Sizing
 
