@@ -22,7 +22,7 @@ export interface RunnerHook {
   clear(): void;
 }
 
-export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOrigin: string): RunnerHook {
+export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOrigin: string | null): RunnerHook {
   const runnerRef = useRef<Runner | null>(null);
   const [status, setStatus] = useState<RunnerStatus>('created');
   const [capabilities, setCapabilities] = useState<RunnerCapabilities | null>(null);
@@ -32,7 +32,7 @@ export function useRunner(mount: React.RefObject<HTMLElement | null>, sandboxOri
   const [hasDrawing, setHasDrawing] = useState(false);
 
   useEffect(() => {
-    if (!mount.current) return;
+    if (!mount.current || sandboxOrigin === null) return;
     let disposed = false;
     let runner: Runner | null = null;
 

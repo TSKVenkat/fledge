@@ -18,21 +18,25 @@ the tab for nothing.
 
 **Early. The execution runtime works; the platform around it does not exist yet.**
 
-Working today, and covered by tests that run in a real browser:
+Working today, and covered by tests that run against the Docker stack in a real
+browser:
 
 - Real Python 3.14 in the browser, with blocking `input()` and a Stop button
   that stops a `while True:`
 - turtle graphics, drawn from a retained display list
-- Tracebacks that point at the student's own line with no runtime frames
-- The editor, and the cross-origin sandbox it drives
+- Tracebacks that point at the student's own line, with no runtime frames
+- Accounts, sign-in by email **or** username, and the first administrator
+  created from the environment
+- Projects that save, and anonymous projects that reopen from a link with no
+  account at all
+- `docker compose up`, with the application and the sandbox on separate origins
 
-Described below but **not yet implemented**: accounts, classes, assignments,
-share links, embeds, the HTML/CSS/JS preview, matplotlib, and the Docker
-deployment. Those are the plan, not the present.
+**Not yet implemented**: classes, assignments, share links, embeds, the
+HTML/CSS/JS preview, and matplotlib. Those are the plan, not the present.
 
-If you are looking for something to run in a classroom next term, this is not
-it yet. If you are interested in the execution model, that part is real and
-you can drive it locally with `pnpm --filter @fledge/web dev`.
+If you are looking for something to run a whole class from next term, it is not
+that yet -- there is nowhere to put a class. If you want a self-hosted place for
+students to write and run Python, that part works.
 
 ---
 
@@ -58,27 +62,37 @@ you can drive it locally with `pnpm --filter @fledge/web dev`.
 - No AI features.
 - No autograding, no plagiarism detection.
 
-## Running it today
-
-There is no Docker image yet. From source:
+## Running it
 
 ```bash
 git clone https://github.com/TSKVenkat/fledge.git
 cd fledge
-pnpm install
-pnpm --filter @fledge/web dev
+cp .env.example .env
+
+# SECRET_KEY encrypts stored secrets and has no default, on purpose.
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# put that in SECRET_KEY, then set ADMIN_EMAIL and ADMIN_PASSWORD
+
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
 ```
 
-Open <http://localhost:5173>. The sandbox is served from `127.0.0.1` on the same
-port — a different origin deliberately, so the security boundary exists in
-development too.
+The application is on <http://localhost:8080> and the sandbox on
+<http://localhost:8081>. They are separate origins deliberately; see
+[Security](SECURITY.md) for why that is not optional.
+
+From source, for development:
+
+```bash
+pnpm install && pnpm --filter @fledge/web dev     # http://localhost:5173
+```
 
 To check it end to end:
 
 ```bash
-pnpm test                             # unit
+pnpm test                             # unit and API, on an in-process Postgres
 node packages/runtime/test/run.mjs    # the runtime, in a real browser
-node e2e/smoke.mjs                    # the editor, driven as a student
+node e2e/smoke.mjs                    # the editor against the dev server
+node e2e/deployment.mjs               # the whole Docker stack
 ```
 
 ## Documentation

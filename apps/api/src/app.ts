@@ -10,6 +10,7 @@ import { registerAuthContext } from './auth/guards.ts';
 import { healthRoutes } from './routes/health.ts';
 import { authRoutes } from './routes/auth.ts';
 import { projectRoutes } from './routes/projects.ts';
+import { configRoutes } from './routes/config.ts';
 
 export async function buildApp(env: Env, db: Database): Promise<FastifyInstance> {
   const app = Fastify({
@@ -28,6 +29,7 @@ export async function buildApp(env: Env, db: Database): Promise<FastifyInstance>
   registerAuthContext(app, db);
 
   healthRoutes(app, db);
+  configRoutes(app, env);
   authRoutes(app, db, env);
   projectRoutes(app, db, env);
 

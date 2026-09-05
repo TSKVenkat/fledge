@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Editor } from './Editor.tsx';
 import { useRunner } from './use-runner.ts';
 
@@ -15,21 +15,37 @@ for i in range(36):
 `;
 
 /**
- * In development the application is served from localhost and the sandbox from
- * 127.0.0.1. They are the same server but different origins, so the boundary is
- * exercised locally instead of only in production.
+ * Where the sandbox lives is an instance decision, not a build-time one: it is
+ * a different port in the Docker stack and a different host name in a real
+ * deployment, and an operator should be able to move it without a toolchain.
+ * The API therefore tells us, and the development fallback keeps the two
+ * origins apart locally so the boundary is exercised there too.
  */
-function sandboxOrigin(): string {
+function developmentSandboxOrigin(): string {
   const { protocol, hostname, port } = location;
   const other = hostname === 'localhost' ? '127.0.0.1' : 'localhost';
   return `${protocol}//${other}${port ? ':' + port : ''}`;
+}
+
+async function loadSandboxOrigin(): Promise<string> {
+  try {
+    const response = await fetch('/v1/config', { credentials: 'same-origin' });
+    if (response.ok) {
+      const config = await response.json() as { sandboxUrl?: string };
+      if (config.sandboxUrl) return new URL(config.sandboxUrl).origin;
+    }
+  } catch {
+    // No API reachable: this is the vite dev server on its own.
+  }
+  return developmentSandboxOrigin();
 }
 
 export function App() {
   const [code, setCode] = useState(STARTER);
   const [tab, setTab] = useState<'console' | 'canvas'>('console');
   const stage = useRef<HTMLDivElement>(null);
-  const origin = useMemo(() => sandboxOrigin(), []);
+  const [origin, setOrigin] = useState<string | null>(null);
+  useEffect(() => { void loadSandboxOrigin().then(setOrigin); }, []);
   const runner = useRunner(stage, origin);
   const [answer, setAnswer] = useState('');
 

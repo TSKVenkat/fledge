@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+**/dist
+apps/web/public
+docs/.vitepress/cache
+docs/.vitepress/dist
+packages/runtime/test/fixture/pyodide
+packages/runtime/test/fixture/worker.js
+.git
+e2e/*.png

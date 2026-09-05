@@ -1,0 +1,57 @@
+name: fledge
+
+# Every published port is a variable, because a fixed one means this refuses to
+# start beside anything already using it.
+x-app-env: &app-env
+  DATABASE_URL: postgres://fledge:${POSTGRES_PASSWORD:-fledge}@postgres:5432/fledge
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — see README}
+  PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+  SANDBOX_URL: ${SANDBOX_URL:-http://localhost:8081}
+  ALLOW_MICROPIP: ${ALLOW_MICROPIP:-false}
+  NODE_ENV: production
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: fledge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fledge}
+      POSTGRES_DB: fledge
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fledge"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # A one-shot: everything else waits for it to finish successfully, so the API
+  # never starts against a schema it does not understand.
+  migrate:
+    build: { context: .., target: migrate }
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    build: { context: .., target: api }
+    environment:
+      <<: *app-env
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  web:
+    build: { context: .., target: web }
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+      - "${SANDBOX_PORT:-8081}:8081"
+    depends_on:
+      api: { condition: service_started }
+    restart: unless-stopped
+
+volumes:
+  db-data:
