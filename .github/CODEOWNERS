@@ -1,0 +1,21 @@
+# Review is required from a code owner on every pull request.
+# Later matches win, so the specific entries below override the catch-all.
+
+*                                   @TSKVenkat
+
+# The execution sandbox decides what student code can reach. Changes here need
+# the security model in SECURITY.md re-read, not just the diff.
+/packages/runtime/                  @TSKVenkat
+/packages/runtime/src/frame/        @TSKVenkat
+/packages/runtime/src/worker/       @TSKVenkat
+
+# Response headers are the isolation boundary; a stray edit here silently
+# downgrades every deployment.
+/deploy/                            @TSKVenkat
+/apps/web/vite.config.ts            @TSKVenkat
+
+# Licence and security posture.
+/LICENSE                            @TSKVenkat
+/NOTICE                             @TSKVenkat
+/SECURITY.md                        @TSKVenkat
+/.github/                           @TSKVenkat

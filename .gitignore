@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+*.log
+test-results/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+apps/web/public/pyodide/
+
+# Vendored at install/build time, never committed.
+packages/runtime/test/fixture/pyodide
+packages/runtime/test/fixture/worker.js
+packages/runtime/test/fixture/python/
+# Materialised from the workspace by apps/web/scripts/link-assets.mjs
+apps/web/public/
+e2e/*.png

@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    # Pyodide is pinned exactly: a runtime bump changes which Python students
+    # get and which packages exist, so it is reviewed deliberately, never
+    # swept in with a batch of patch updates.
+    ignore:
+      - dependency-name: pyodide
+    groups:
+      dev-tooling:
+        patterns: ["eslint*", "typescript", "vitest", "@vitejs/*", "vite"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }

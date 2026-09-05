@@ -1,0 +1,43 @@
+fledge
+Copyright (C) 2026 fledge contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. See LICENSE.
+
+--------------------------------------------------------------------------------
+Third-party components
+--------------------------------------------------------------------------------
+
+Pyodide — Mozilla Public License 2.0
+  https://github.com/pyodide/pyodide
+  Shipped unmodified as the Python runtime. MPL-2.0 is file-level copyleft and
+  is compatible with the AGPL; the Pyodide sources are redistributed as received
+  and their licence text travels with them in the vendored directory.
+
+CPython standard library — Python Software Foundation License 2.0
+  Bundled inside Pyodide as python_stdlib.zip.
+
+CodeMirror 6 — MIT
+  https://codemirror.net/
+
+React — MIT
+  https://react.dev/
+
+--------------------------------------------------------------------------------
+A note on the turtle module
+--------------------------------------------------------------------------------
+
+packages/runtime/src/python/turtle.py is original work, not a copy of CPython's
+turtle. It implements the subset of the documented turtle interface that school
+worksheets use, drawing onto a canvas rather than into Tk.
+
+Its circle() reproduces the polygon-approximation approach the standard library
+documents — the step count grows with the radius — because an implementation
+that does not diverges visibly from the picture a textbook shows. That is an
+algorithm, not copied code.
+
+Names outside the supported set raise NotImplementedError naming themselves, so
+a teacher meets a clear message rather than a traceback. The supported set is
+listed in docs/reference/turtle.md.
